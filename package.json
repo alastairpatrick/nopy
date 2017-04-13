@@ -1,5 +1,5 @@
 {
-  "name": "npy",
+  "name": "nopy",
   "version": "0.1.0",
   "description": "Install and run python dependencies in node.js project.",
   "main": "./src/api.js",
@@ -8,7 +8,7 @@
     "install": "node src/npip.js install"
   },
   "bin": {
-    "npy": "./src/npy.js",
+    "npy": "./src/nopy.js",
     "npip": "./src/npip.js"
   },
   "author": "Al Patrick",
