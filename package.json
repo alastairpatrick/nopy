@@ -1,7 +1,7 @@
 {
   "name": "npy",
-  "version": "1.0.0",
-  "description": "Install and run python dependencies in node project.",
+  "version": "0.1.0",
+  "description": "Install and run python dependencies in node.js project.",
   "main": "./src/api.js",
   "scripts": {
     "test": "mocha **/*.spec.js",
