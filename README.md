@@ -1,4 +1,5 @@
 # nopy
+
 Install and run python dependencies in node.js project.
 
 This project provides an alternative to a python virtual environment for node.js projects. It aims to make pip work more like npm.
@@ -28,7 +29,7 @@ Then, to install nopy as a local dependency:
 
 ## Using npip to install python packages
 
-To install a python package in the same project:
+To install a python package in a node.js project:
 ```
 /home/al/myproject$ node_modules/.bin/npip install toposort
 Downloading/unpacking toposort
@@ -61,14 +62,33 @@ Here, when python was invoked interactively, it looked in the python_modules sub
 
 To direct python to invoke a python program at a particular path:
 ```
-/home/al/myproject$ node_modules/.bin/nopy <someprogram.py>
+/home/al/myproject$ cat - >some_program.py
+from toposort import toposort
+print(list(toposort({2: {11},
+                     9: {11, 8, 10},
+                     10: {11, 3},
+                     11: {7, 5},
+                     8: {7, 3},
+                    }))
+/home/al/myproject$ node_modules/.bin/nopy some_program.py 3
+[{3, 5, 7}, {8, 11}, {2, 10}, {9}]
 ```
 
-To see how python thinks the per user site-directory has been configured:
+Python interpreter command line options and arguments that will be visible to the python program via `sys.argv` are passed through. To invoke a module, pass the `-m` option through to python.
 ```
 /home/al/myproject$ node_modules/.bin/nopy -m site --user-base
 /home/al/myproject/python_modules
 ```
+
+Similarly, to pass python code on the command line, use the `-c` option:
+```
+/home/al/myproject$ node_modules/.bin/nopy -c 'import sys; x=float(sys.argv[1]); print x*x' 3
+9.0
+```
+
+What magic does nopy use to find the `python_modules` directory? When nopy is invoked with the path to a python program to run, it first inspects the directory containing that program to see if it has a `package.json` file. If it's there, then it will try to use a `python_modules` directory alongside it. If there was no `package.json` file found, it works up the directory hierarchy until it reaches the root. If a `package.json` file is found anywhere along the way, it tries to use a sibling `python_modules` directory. This resembles the mechanism that node.js uses to resolve modules.
+
+If nopy is invoked with no path to a program to run, e.g. if it is invoked interactively or with `-m` or `-c`, the process is quite similar. Instead of starting at a directory given by the path, it starts in the current working directory.
 
 ## Documenting python dependencies
 
@@ -81,7 +101,7 @@ Python dependencies should be listed in the package.json file in the same way as
     "nopy": "^1.0.0"
   },
   "pythonDependencies": {
-    "toposort": "~=1.5"
+    "toposort": ">=1.5"
   }
 }
 ```
@@ -111,10 +131,6 @@ It might be desirable to install the python dependencies at the same time as the
 }
 ```
 
-## API
-
-There is an API to invoke python programs from JavaScript. It sets up the execution environment the same way as nopy. The API is not documented but you could refer to the unit tests.
-
 ## Global installation
 
 You can install nopy globally so that nopy and npip are on PATH. For example:
@@ -123,18 +139,19 @@ You can install nopy globally so that nopy and npip are on PATH. For example:
 ...
 /home/al/myproject$ npip install <package name>
 ...
-/home/al/myproject$ npip freeze
-...
 ```
 
 You might not actually need to install globally if you want to avoid typing `node_modules/.bin/` in your npm scripts. Remember that when you invoke nopy or npip via an npm script, npm will add both nopy and npip to its PATH, even if they are only installed locally.
 
 ## Gotchas
 
-Behind the scenes, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside `package.json`. This tells python to look there for python modules. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
+Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside `package.json`. This tells python to look there for python modules. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
 
 This is what we want. One caveat though is, because python's per user site-packages directory has been overridden, any other such directory, perhaps one residing in the user's home directory, will no longer be visible to python. If the goal is to isolate the project's python dependencies within the project, in some ways this is a feature. It's definitely a potential gotcha, though!
 
-What magic does nopy use to find the `python_modules` directory? When nopy is invoked with the path to a python program to run, it first inspects the directory containing that program to see if it has a `package.json` file. If it's there, then it will try to use a `python_modules` directory alongside it. If there was no `package.json` file found, it works up the directory hierarchy until it reaches the root. If a `package.json` file is found in any of these locations, it tries to use a `python_modules` directory alongside it. This resembles the mechanism that node.js uses to resolve modules.
+## TODO
 
-When npip is invoked or if nopy is invoked interactively with no path to a program to run, the process is quite similar. Instead of starting at a directory given by the path, it starts in the current working directory.
+These are some things that might happen in the future.
+* There is a node.js API to programatically spawn python programs. This could be documented and made "official".
+* Integrate JSON-RPC or other protocol over channel between node.js process and python child processes.
+* To support older pythons, consider distribing get-pip.py or provide some other way to install pip in python_modules.

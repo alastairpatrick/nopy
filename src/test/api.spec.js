@@ -33,32 +33,38 @@ describe("findSourceArg", function() {
 })
 
 describe("findPackageDir", function() {
+  it("passes through explicit package dir", function() {
+    return findPackageDir({ packageDir: "package/dir" }).then(dir => {
+      expect(dir).to.equal("package/dir");
+    });
+  })
+
   it("finds dir for src/test/test.py", function() {
-    return findPackageDir("src/test/test.py").then(dir => {
+    return findPackageDir({ searchPath: "src/test/test.py" }).then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/", function() {
-    return findPackageDir("src/test/").then(dir => {
+    return findPackageDir({ searchPath: "src/test/" }).then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src", function() {
-    return findPackageDir("src").then(dir => {
+    return findPackageDir({ searchPath: "src" }).then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for .", function() {
-    return findPackageDir(".").then(dir => {
+    return findPackageDir({ searchPath: "." }).then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("does not find dir for /", function() {
-    return findPackageDir("/").then(() => {
+    return findPackageDir({ searchPath: "/" }).then(() => {
       throw "Expected exception";
     }).catch(error => {
       expect(error.message).to.equal("Could not find directory containing package.json");
@@ -75,10 +81,10 @@ describe("pythonEnv", function() {
 
   it("augments environment with user base directory", function() {
     expect(pythonEnv("/a/b/c", {
-      "HOME": "/home/dandy",
+      "HOME": "/home/al",
     })).to.deep.equal({
       "PYTHONUSERBASE": path.join("/a/b/c", "python_modules"),
-      "HOME": "/home/dandy",
+      "HOME": "/home/al",
     });
   })
 
@@ -107,7 +113,7 @@ describe("spawnPython", function() {
   })
 
   it("spawns src/test/test.py and retrieves stdout when exit status code is zero", function() {
-    return spawnPython(["src/test/test.py", "0", "a", "b"], { return: "output" }).then(({ code, stdout, stderr }) => {
+    return spawnPython(["src/test/test.py", "0", "a", "b"], { interop: "buffer" }).then(({ code, stdout, stderr }) => {
       expect(code).to.equal(0);
       expect(stderr).to.match(/^hello from stderr$/m);
 
@@ -117,11 +123,19 @@ describe("spawnPython", function() {
   })
 
   it("spawns src/test/test.py and throws stderr when exit status code is non-zero", function() {
-    return spawnPython(["src/test/test.py", "7", "a", "b"], { return: "output" }).then(() => {
+    return spawnPython(["src/test/test.py", "7", "a", "b"], { interop: "buffer" }).then(() => {
       throw "Fails";
     }).catch(error => {
       expect(error).to.match(/Exited with code 7/);
       expect(error).to.match(/hello from stderr/);
+    });
+  })
+
+  it("error on unexpected interop mode", function() {
+    return spawnPython(["src/test/test.py", "0", "a", "b"], { interop: "bad" }).then(() => {
+      throw "Fails";
+    }).catch(error => {
+      expect(error).to.match(/bad/);
     });
   })
 })

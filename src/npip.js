@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
 const bluebird = require("bluebird");
-const child_process = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const { findPackageDir, pythonEnv } = require("./api");
+const { findPackageDir, spawnPython } = require("./api");
 
-const Promise = bluebird.Promise;
 const readFile = bluebird.promisify(fs.readFile);
 
 const main = () => {
@@ -31,8 +29,8 @@ const main = () => {
         }
 
         if (count === 0) {
-          console.log("npip has no dependencies to install listed in package.json.");
-          return Promise.resolve(0);
+          console.log("npip has no dependencies listed in package.json to install.");
+          return 0;
         }
       }
 
@@ -42,11 +40,13 @@ const main = () => {
       // Run pip as a python module so that pip itself does not need to be on PATH, only python.
       args.unshift("-m", "pip");
 
-      let env = pythonEnv(packageDir);
-      let child = child_process.spawn("python", args, { env, stdio: "inherit" });
-      return new Promise((resolve, reject) => {
-        child.on("error", reject);
-        child.on("close", resolve);
+      return spawnPython(args, {
+        packageDir,
+        interop: "status",
+        throwNonZeroStatus: false,
+        spawn: {
+          stdio: "inherit",
+        },
       });
     });
   });

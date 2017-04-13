@@ -39,10 +39,13 @@ const findSourceArg = (args) => {
   return undefined;
 }
 
-const findPackageDir = (sourcePath) => {
-  sourcePath = sourcePath || process.cwd();
+const findPackageDir = (options = {}) => {
+  if (options.packageDir)
+    return Promise.resolve(options.packageDir);
 
-  return realpath(sourcePath)
+  let searchPath = options.searchPath || process.cwd();
+
+  return realpath(searchPath)
   .then(ancestor => {
     let ancestors = [];
     for (;;) {
@@ -75,19 +78,25 @@ const pythonEnv = (packageDir, env) => {
 };
 
 const spawnPython = (args, options = {}) => {
-  let sourcePath = findSourceArg(args);
-  return findPackageDir(sourcePath).then(packageDir => {
-    options = Object.assign({}, options, {
-      env: pythonEnv(packageDir, options.env),
-    });
+  options = Object.assign({
+    interop: "status",
+    packageDir: undefined,
+    pythonPath: "python",
+    searchPath: undefined,
+    spawn: {},
+    throwNonZeroStatus: true,
+  }, options);
 
-    if (options.throwNonZeroStatus === undefined)
-      options.throwNonZeroStatus = true;
+  if (!options.searchPath)
+    options.searchPath = findSourceArg(args);
 
-    let child = child_process.spawn("python", args, options);
-    if (options.return === "child") {
+  return findPackageDir(options).then(packageDir => {
+    options.spawn.env = pythonEnv(packageDir, options.spawn.env);
+    let child = child_process.spawn(options.pythonPath, args, options.spawn);
+    switch (options.interop) {
+    case "child":
       return child;
-    } else if (options.return === "output") {
+    case "buffer":
       return new Promise((resolve, reject) => {
         let stdout = "";
         let stderr = "";
@@ -104,7 +113,7 @@ const spawnPython = (args, options = {}) => {
           resolve({ code, stdout, stderr });
         });
       });
-    } else {
+    case "status":
       return new Promise((resolve, reject) => {
         child.on("error", reject);
         child.on("close", code => {
@@ -113,6 +122,8 @@ const spawnPython = (args, options = {}) => {
           resolve(code);
         });
       });
+    default:
+      throw new Error(`Unexpected interop mode ${options.interop}`);
     }
   });
 }
