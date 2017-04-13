@@ -31,19 +31,14 @@ Then, to install nopy as a local dependency:
 To install a python package in the same project:
 ```
 /home/al/myproject$ node_modules/.bin/npip install toposort
-Collecting toposort
-  Using cached toposort-1.5-py2.py3-none-any.whl
+Downloading/unpacking toposort
+  Downloading toposort-1.5-py2.py3-none-any.whl
 Installing collected packages: toposort
-Successfully installed toposort-1.5
+Successfully installed toposort
+Cleaning up...
 ```
 
 This creates a python_modules subdirectory, which contains installed python packages.
-
-npip is a wrapper for python's pip, so you can use all the usual pip commands and command line options with npip. For example, this will list the python packages installed in the node.js project:
-```
-/home/al/myproject$ node_modules/.bin/npip freeze
-toposort==1.5
-```
 
 ## Using nopy to run python
 
@@ -105,13 +100,13 @@ It might be desirable to install the python dependencies at the same time as the
   "name": "myproject",
   ...
   "scripts": {
-    "install": "nopy install"
+    "install": "npip install"
   },
   "dependencies": {
     "nopy": "^1.0.0"
   },
   "pythonDependencies": {
-    "toposort": "~=1.5"
+    "toposort": ">=1.5"
   }
 }
 ```
