@@ -1,0 +1,25 @@
+{
+  "name": "npy",
+  "version": "1.0.0",
+  "description": "Install and run python dependencies in node project.",
+  "main": "./src/api.js",
+  "scripts": {
+    "test": "mocha **/*.spec.js",
+    "install": "node src/npip.js install"
+  },
+  "bin": {
+    "npy": "./src/npy.js",
+    "npip": "./src/npip.js"
+  },
+  "author": "Al Patrick",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.5.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
+  },
+  "pythonDependencies": {
+  }
+}
