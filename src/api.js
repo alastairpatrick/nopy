@@ -45,34 +45,26 @@ const findPackageDir = (packageDescendent, options = {}) => {
   if (!packageDescendent)
     return Promise.resolve(process.cwd());
 
-  return realpath(packageDescendent)
-  .catch(error => {
-    if (error.code === "ENOENT")
-      return process.cwd();
-    else
-      throw error;
-  })
-  .then(ancestor => {
-    let ancestors = [];
-    for (;;) {
-      ancestors.push(ancestor);
-      let p = path.dirname(ancestor);
-      if (!p || p == ancestor)
-        break;
-      ancestor = p;
-    }
+  let ancestor = packageDescendent;
+  let ancestors = [];
+  for (;;) {
+    ancestors.push(ancestor);
+    let p = path.dirname(ancestor);
+    if (!p || p == ancestor)
+      break;
+    ancestor = p;
+  }
 
-    return Promise.map(ancestors, (ancestor) => {
-      return stat(path.join(ancestor, PACKAGE_JSON))
-        .then(obj => obj.isFile() && ancestor)
-        .catch(() => false)
-    })
-    .then(packages => {
-      packages = packages.filter(package => package);
-      if (packages.length === 0)
-        throw new Error("Could not find directory containing package.json");
-      return packages[0];
-    });
+  return Promise.map(ancestors, (ancestor) => {
+    return stat(path.join(ancestor, PACKAGE_JSON))
+      .then(obj => obj.isFile() && ancestor)
+      .catch(() => false)
+  })
+  .then(packages => {
+    packages = packages.filter(package => package);
+    if (packages.length === 0)
+      throw new Error("Could not find directory containing package.json");
+    return packages[0];
   });
 }
 
@@ -89,28 +81,32 @@ const spawnPython = (args, options = {}) => {
     interop: "status",
     packageDir: undefined,
     execPath: "python",
+    binRelative: false,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
 
   let sourcePathIdx = findSourceArg(args);
-  let packageDescendent = Promise.resolve("hi");
-  let runBinScript = false;
-  if (sourcePathIdx < 0) {
+  let sourcePath;
+  if (sourcePathIdx >= 0) {
+    sourcePath = args[sourcePathIdx];
+    if (path.isAbsolute(sourcePath))
+      options.binRelative = false;
+  } else {
+    options.binRelative = false;
+  }
+
+
+  let packageDescendent;
+  if (options.binRelative || !sourcePath) {
     packageDescendent = Promise.resolve(process.cwd());
   } else {
-    packageDescendent = realpath(args[sourcePathIdx])
-    .catch(error => {
-      if (error.code !== "ENOENT")
-        throw error;
-      runBinScript = !path.isAbsolute(args[sourcePathIdx]);
-      return process.cwd();
-    });
+    packageDescendent = realpath(args[sourcePathIdx]);
   }
 
   return packageDescendent.then(packageDescendent => {
     return findPackageDir(packageDescendent, options).then(packageDir => {
-      if (runBinScript) {
+      if (options.binRelative) {
         let binDirectory = path.join(packageDir, PYTHON_MODULES, ".bin");
         options.execPath = path.join(binDirectory, args[sourcePathIdx]);
         args = args.slice(sourcePathIdx + 1);
