@@ -135,7 +135,7 @@ It might be desirable to install the python dependencies at the same time as the
 
 The nopenv tool is similar to nopy. Rather than passing python source files to python for execution, it is used to run executable programs in the context of an environment that includes the locally installed python modules. For example, it is useful for running executable scripts installed by some python packages, which npip installs in the python_modules/.bin directory.
 
-As one example, let's say the alembic python package was installed locally. To start a database migration:
+As one example, let's say the [alembic](https://pypi.python.org/pypi/alembic) python package was installed locally. To start a database migration:
 ```
 /home/al/myproject$ node_modules/.bin/nopenv alembic revision -m "create inventory table"
 Generating /path/to/yourproject/alembic/versions/1975ea83b712_create_invent
@@ -147,7 +147,7 @@ Alternatively, it's less typing to make an npm script in package.json for quickl
   "name": "myproject",
   ...
   "scripts": {
-    "alembic": "nopenv python_modules/.bin/alembic"
+    "alembic": "nopenv alembic"
   },
   "dependencies": {
     "nopy": ""
@@ -178,9 +178,11 @@ However I prefer to make do with only a local installation. npm scripts are ofte
 
 ## Gotchas
 
-Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside `package.json`. This tells python to look there for python modules. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
+Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside package.json. This tells python to look there for python modules. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
 
 This is what we want. One caveat though is, because python's per user site-packages directory has been overridden, any other such directory, perhaps one residing in the user's home directory, will no longer be visible to python. If the goal is to isolate the project's python dependencies within the project, in some ways this is a feature. It's definitely a potential gotcha, though!
+
+Similarly, when a python program is invoked, its PYTHONPATH environment variable is modified to point to the project directory, the one containing package.json. In order to isolate the project's python dependencies, any previous value of PYTHONPATH is overridden. This allws modules to be imported relative to the project directory itself, not just from python packages that have been installed python_modules.
 
 ## TODO
 

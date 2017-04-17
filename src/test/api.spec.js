@@ -1,6 +1,6 @@
 const path = require('path');
 const { expect } = require('chai');
-const { findSourceArg, findPackageDir, getPythonScriptsDir, pythonEnv, spawnPython } = require('../..');
+const { findSourceArg, findPackageDir, pythonEnv, spawnPython } = require('../..');
 
 describe("findSourceArg", function() {
   it("finds lone source arg", function() {
@@ -91,6 +91,7 @@ describe("pythonEnv", function() {
       "HOME": "/home/al",
     }).then(env => {
       expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
+      expect(env["HOME"]).to.equal("/home/al");
     });
   })
 
@@ -99,6 +100,12 @@ describe("pythonEnv", function() {
       "PYTHONNOUSERSITE": "1",
     }).then(env => {
       expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
+    });
+  })
+
+  it("augments environment with package directory as python path", function() {
+    return pythonEnv("/a/b/c", {}).then(env => {
+      expect(env["PYTHONPATH"]).to.equal("/a/b/c");
     });
   })
 })

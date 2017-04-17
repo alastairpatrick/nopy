@@ -90,21 +90,24 @@ const getPythonScriptsDir = (env = process.env) => {
   });
 }
 
-const prependEnvPath = (path) => {
+const joinPaths = (...paths) => {
   let sep = ":";
   if (process.platform === "win32")
     sep = ";";
-  return path + sep + process.env.PATH;
+  return paths.filter(p => p).join(sep);
 }
 
 const pythonEnv = (packageDir, env) => {
   env = Object.assign({}, env || process.env);
+
+  env.PYTHONPATH = packageDir;
+
   delete env.PYTHONNOUSERSITE;
   env.PYTHONUSERBASE = path.join(packageDir, PYTHON_MODULES);
 
   return getPythonScriptsDir(env)
   .then(scriptsDir => {
-    env.PATH = prependEnvPath(scriptsDir);
+    env.PATH = joinPaths(scriptsDir, process.env.PATH);
     return env;
   });
 }
