@@ -33,45 +33,39 @@ describe("findSourceArg", function() {
 })
 
 describe("findPackageDir", function() {
-  it("passes through explicit package dir", function() {
-    return findPackageDir("src/test/test.py", { packageDir: "package/dir" }).then(dir => {
-      expect(dir).to.equal("package/dir");
-    });
-  })
-
   it("returns dir for undefined descendent.", function() {
     return findPackageDir().then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 
   it("returns dir for non-existent descendent.", function() {
     return findPackageDir("src/test/does-not-exist.py").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 
   it("finds dir for src/test/test.py", function() {
     return findPackageDir("src/test/test.py").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 
   it("finds dir for src/test/", function() {
     return findPackageDir("src/test/").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 
   it("finds dir for src", function() {
     return findPackageDir("src").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 
   it("finds dir for .", function() {
     return findPackageDir(".").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+      expect(dir).to.equal(".");
     });
   })
 

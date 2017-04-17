@@ -39,11 +39,9 @@ const findSourceArg = (args) => {
   return -1;
 }
 
-const findPackageDir = (packageDescendent, options = {}) => {
-  if (options.packageDir)
-    return Promise.resolve(options.packageDir);
+const findPackageDir = (packageDescendent) => {
   if (!packageDescendent)
-    return Promise.resolve(process.cwd());
+    return Promise.resolve(".");
 
   let ancestor = packageDescendent;
   let ancestors = [];
@@ -81,37 +79,27 @@ const spawnPython = (args, options = {}) => {
     interop: "status",
     packageDir: undefined,
     execPath: "python",
-    binRelative: false,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
 
-  let sourcePathIdx = findSourceArg(args);
-  let sourcePath;
-  if (sourcePathIdx >= 0) {
-    sourcePath = args[sourcePathIdx];
-    if (path.isAbsolute(sourcePath))
-      options.binRelative = false;
-  } else {
-    options.binRelative = false;
-  }
-
-
   let packageDescendent;
-  if (options.binRelative || !sourcePath) {
-    packageDescendent = Promise.resolve(process.cwd());
+  if (options.packageDir) {
+    packageDescendent = Promise.resolve(options.packageDir);
   } else {
-    packageDescendent = realpath(args[sourcePathIdx]);
+    let sourcePathIdx = findSourceArg(args);
+    let sourcePath;
+    if (sourcePathIdx >= 0)
+      sourcePath = args[sourcePathIdx];
+
+    if (sourcePath)
+      packageDescendent = realpath(sourcePath);
+    else
+      packageDescendent = Promise.resolve(process.cwd());
   }
 
   return packageDescendent.then(packageDescendent => {
-    return findPackageDir(packageDescendent, options).then(packageDir => {
-      if (options.binRelative) {
-        let binDirectory = path.join(packageDir, PYTHON_MODULES, ".bin");
-        options.execPath = path.join(binDirectory, args[sourcePathIdx]);
-        args = args.slice(sourcePathIdx + 1);
-      }
-
+    return findPackageDir(packageDescendent).then(packageDir => {
       options.spawn.env = pythonEnv(packageDir, options.spawn.env);
       let child = child_process.spawn(options.execPath, args, options.spawn);
       switch (options.interop) {
