@@ -33,19 +33,25 @@ const findSourceArg = (args) => {
     if (OPTION_RE.test(arg))
       continue;
 
-    return arg;
+    return i;
   }
 
-  return undefined;
+  return -1;
 }
 
-const findPackageDir = (options = {}) => {
+const findPackageDir = (packageDescendent, options = {}) => {
   if (options.packageDir)
     return Promise.resolve(options.packageDir);
+  if (!packageDescendent)
+    return Promise.resolve(process.cwd());
 
-  let searchPath = options.searchPath || process.cwd();
-
-  return realpath(searchPath)
+  return realpath(packageDescendent)
+  .catch(error => {
+    if (error.code === "ENOENT")
+      return process.cwd();
+    else
+      throw error;
+  })
   .then(ancestor => {
     let ancestors = [];
     for (;;) {
@@ -78,59 +84,79 @@ const pythonEnv = (packageDir, env) => {
 };
 
 const spawnPython = (args, options = {}) => {
+  args = args.slice(0);
   options = Object.assign({
     interop: "status",
     packageDir: undefined,
-    pythonPath: "python",
-    searchPath: undefined,
+    execPath: "python",
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
 
-  if (!options.searchPath)
-    options.searchPath = findSourceArg(args);
+  let sourcePathIdx = findSourceArg(args);
+  let packageDescendent = Promise.resolve("hi");
+  let runBinScript = false;
+  if (sourcePathIdx < 0) {
+    packageDescendent = Promise.resolve(process.cwd());
+  } else {
+    packageDescendent = realpath(args[sourcePathIdx])
+    .catch(error => {
+      if (error.code !== "ENOENT")
+        throw error;
+      runBinScript = !path.isAbsolute(args[sourcePathIdx]);
+      return process.cwd();
+    });
+  }
 
-  return findPackageDir(options).then(packageDir => {
-    options.spawn.env = pythonEnv(packageDir, options.spawn.env);
-    let child = child_process.spawn(options.pythonPath, args, options.spawn);
-    switch (options.interop) {
-    case "child":
-      return child;
-    case "buffer":
-      return new Promise((resolve, reject) => {
-        let stdout = "";
-        let stderr = "";
-        child.stdout.on("data", data => {
-          stdout += data;
+  return packageDescendent.then(packageDescendent => {
+    return findPackageDir(packageDescendent, options).then(packageDir => {
+      if (runBinScript) {
+        let binDirectory = path.join(packageDir, PYTHON_MODULES, ".bin");
+        options.execPath = path.join(binDirectory, args[sourcePathIdx]);
+        args = args.slice(sourcePathIdx + 1);
+      }
+
+      options.spawn.env = pythonEnv(packageDir, options.spawn.env);
+      let child = child_process.spawn(options.execPath, args, options.spawn);
+      switch (options.interop) {
+      case "child":
+        return child;
+      case "buffer":
+        return new Promise((resolve, reject) => {
+          let stdout = "";
+          let stderr = "";
+          child.stdout.on("data", data => {
+            stdout += data;
+          });
+          child.stderr.on("data", data => {
+            stderr += data;
+          });
+          child.on("error", reject);
+          child.on("close", code => {
+            if (options.throwNonZeroStatus && code !== 0)
+              reject(new Error(`Exited with code ${code}.\n${stderr}`));
+            resolve({ code, stdout, stderr });
+          });
         });
-        child.stderr.on("data", data => {
-          stderr += data;
+      case "status":
+        return new Promise((resolve, reject) => {
+          child.on("error", reject);
+          child.on("close", code => {
+            if (options.throwNonZeroStatus && code !== 0)
+              reject(new Error(`Exited with code ${code}.`));
+            resolve(code);
+          });
         });
-        child.on("error", reject);
-        child.on("close", code => {
-          if (options.throwNonZeroStatus && code !== 0)
-            reject(new Error(`Exited with code ${code}.\n${stderr}`));
-          resolve({ code, stdout, stderr });
-        });
-      });
-    case "status":
-      return new Promise((resolve, reject) => {
-        child.on("error", reject);
-        child.on("close", code => {
-          if (options.throwNonZeroStatus && code !== 0)
-            reject(new Error(`Exited with code ${code}.`));
-          resolve(code);
-        });
-      });
-    default:
-      throw new Error(`Unexpected interop mode ${options.interop}`);
-    }
+      default:
+        throw new Error(`Unexpected interop mode ${options.interop}`);
+      }
+    });
   });
 }
 
 module.exports = {
+  findPackageDir,
   findSourceArg,
   pythonEnv,
-  findPackageDir,
   spawnPython,
 }

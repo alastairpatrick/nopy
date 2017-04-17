@@ -4,67 +4,79 @@ const { findSourceArg, findPackageDir, pythonEnv, spawnPython } = require('../..
 
 describe("findSourceArg", function() {
   it("finds lone source arg", function() {
-    expect(findSourceArg(["src/test/test.py"])).to.equal("src/test/test.py");
+    expect(findSourceArg(["src/test/test.py"])).to.equal(0);
   });
 
   it("finds source arg followed by arguments", function() {
-    expect(findSourceArg(["src/test/test.py", "-a", "file.xml"])).to.equal("src/test/test.py");
+    expect(findSourceArg(["src/test/test.py", "-a", "file.xml"])).to.equal(0);
   });
 
   it("finds source arg preceded by python options", function() {
-    expect(findSourceArg(["-O", "-d", "src/test/test.py"])).to.equal("src/test/test.py");
+    expect(findSourceArg(["-O", "-d", "src/test/test.py"])).to.equal(2);
   });
 
   it("finds source arg preceded by python option with argument", function() {
-    expect(findSourceArg(["-X", "zippymode", "src/test/test.py"])).to.equal("src/test/test.py");
+    expect(findSourceArg(["-X", "zippymode", "src/test/test.py"])).to.equal(2);
   });
 
   it("finds no source arg when running module", function() {
-    expect(findSourceArg(["-m", "runme", "src/test/test.py"])).to.be.undefined;
+    expect(findSourceArg(["-m", "runme", "src/test/test.py"])).to.equal(-1);
   });
 
   it("finds no source arg when running command", function() {
-    expect(findSourceArg(["-c", "print(1)", "src/test/test.py"])).to.be.undefined;
+    expect(findSourceArg(["-c", "print(1)", "src/test/test.py"])).to.equal(-1);
   });
 
   it("finds no source arg when running from stdin", function() {
-    expect(findSourceArg(["-", "src/test/test.py"])).to.be.undefined;
+    expect(findSourceArg(["-", "src/test/test.py"])).to.equal(-1);
   });
 })
 
 describe("findPackageDir", function() {
   it("passes through explicit package dir", function() {
-    return findPackageDir({ packageDir: "package/dir" }).then(dir => {
+    return findPackageDir("src/test/test.py", { packageDir: "package/dir" }).then(dir => {
       expect(dir).to.equal("package/dir");
     });
   })
 
+  it("returns dir for undefined descendent.", function() {
+    return findPackageDir().then(dir => {
+      expect(dir).to.equal(path.resolve("."));
+    });
+  })
+
+  it("returns dir for non-existent descendent.", function() {
+    return findPackageDir("src/test/does-not-exist.py").then(dir => {
+      expect(dir).to.equal(path.resolve("."));
+    });
+  })
+
   it("finds dir for src/test/test.py", function() {
-    return findPackageDir({ searchPath: "src/test/test.py" }).then(dir => {
+    return findPackageDir("src/test/test.py").then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/", function() {
-    return findPackageDir({ searchPath: "src/test/" }).then(dir => {
+    return findPackageDir("src/test/").then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src", function() {
-    return findPackageDir({ searchPath: "src" }).then(dir => {
+    return findPackageDir("src").then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for .", function() {
-    return findPackageDir({ searchPath: "." }).then(dir => {
+    return findPackageDir(".").then(dir => {
       expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("does not find dir for /", function() {
-    return findPackageDir({ searchPath: "/" }).then(() => {
+    return findPackageDir("/").then(() => {
       throw "Expected exception";
     }).catch(error => {
       expect(error.message).to.equal("Could not find directory containing package.json");
@@ -136,6 +148,13 @@ describe("spawnPython", function() {
       throw "Fails";
     }).catch(error => {
       expect(error).to.match(/bad/);
+    });
+  })
+
+  it("can pass code to python as string", function() {
+    return spawnPython(["-c", "print(1+1)"], { interop: "buffer" }).then(({ code, stdout }) => {
+      expect(code).to.equal(0);
+      expect(JSON.parse(stdout)).to.equal(2);
     });
   })
 })
