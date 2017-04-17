@@ -9,8 +9,6 @@ const readFile = bluebird.promisify(fs.readFile);
 
 const main = () => {
   return findPackageDir().then(packageDir => {
-    let binDirectory = path.join(packageDir, "python_modules", ".bin");
-
     return readFile(path.join(packageDir, "package.json")).then(data => {
       let pkg = JSON.parse(data);
 
@@ -38,9 +36,6 @@ const main = () => {
 
       if (command === "install" || command === "freeze" || command === "list")
         args.splice(1, 0, "--user");
-
-      if (command === "install")
-        args.splice(1, 0, `--install-option=--install-scripts=${binDirectory}`);
 
       // Run pip as a python module so that pip itself does not need to be on PATH, only python.
       args.unshift("-m", "pip");

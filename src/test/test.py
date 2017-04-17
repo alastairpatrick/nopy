@@ -10,6 +10,7 @@ if __name__ == "__main__":
     print(json.dumps({
         "args": sys.argv[2:],
         "user_base": os.environ["PYTHONUSERBASE"],
+        "path": os.environ["PATH"],
     }))
 
     print("hello from stderr", file=sys.stderr)

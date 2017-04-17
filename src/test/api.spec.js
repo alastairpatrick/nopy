@@ -1,6 +1,6 @@
 const path = require('path');
 const { expect } = require('chai');
-const { findSourceArg, findPackageDir, pythonEnv, spawnPython } = require('../..');
+const { findSourceArg, findPackageDir, getPythonScriptsDir, pythonEnv, spawnPython } = require('../..');
 
 describe("findSourceArg", function() {
   it("finds lone source arg", function() {
@@ -80,25 +80,25 @@ describe("findPackageDir", function() {
 
 describe("pythonEnv", function() {
   it("builds environment with user base directory in package directory", function() {
-    expect(pythonEnv("/a/b/c", {})).to.deep.equal({
-      "PYTHONUSERBASE": path.join("/a/b/c", "python_modules"),
+    return pythonEnv("/a/b/c", {})
+    .then(env => {
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
     });
   })
 
   it("augments environment with user base directory", function() {
-    expect(pythonEnv("/a/b/c", {
+    return pythonEnv("/a/b/c", {
       "HOME": "/home/al",
-    })).to.deep.equal({
-      "PYTHONUSERBASE": path.join("/a/b/c", "python_modules"),
-      "HOME": "/home/al",
+    }).then(env => {
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
     });
   })
 
   it("removes env variable to disable user base directory", function() {
-    expect(pythonEnv("/a/b/c", {
+    return pythonEnv("/a/b/c", {
       "PYTHONNOUSERSITE": "1",
-    })).to.deep.equal({
-      "PYTHONUSERBASE": path.join("/a/b/c", "python_modules"),
+    }).then(env => {
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
     });
   })
 })

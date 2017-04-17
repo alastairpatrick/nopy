@@ -66,12 +66,48 @@ const findPackageDir = (packageDescendent) => {
   });
 }
 
+const getPythonScriptsDir = (env = process.env) => {
+  let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", data => {
+      stdout += data;
+    });
+    child.stderr.on("data", data => {
+      stderr += data;
+    });
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code !== 0)
+        reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
+      resolve(stdout);
+    })
+  }).then(stdout => {
+    let siteDir = (/^(.*)$/m).exec(stdout)[1];
+    let scriptsDir = path.join(siteDir, "..", "Scripts");
+    return scriptsDir;
+  });
+}
+
+const prependEnvPath = (path) => {
+  let sep = ":";
+  if (process.platform === "win32")
+    sep = ";";
+  return path + sep + process.env.PATH;
+}
+
 const pythonEnv = (packageDir, env) => {
   env = Object.assign({}, env || process.env);
-  delete env["PYTHONNOUSERSITE"];
-  env["PYTHONUSERBASE"] = path.join(packageDir, PYTHON_MODULES);
-  return env;
-};
+  delete env.PYTHONNOUSERSITE;
+  env.PYTHONUSERBASE = path.join(packageDir, PYTHON_MODULES);
+
+  return getPythonScriptsDir(env)
+  .then(scriptsDir => {
+    env.PATH = prependEnvPath(scriptsDir);
+    return env;
+  });
+}
 
 const spawnPython = (args, options = {}) => {
   args = args.slice(0);
@@ -79,6 +115,7 @@ const spawnPython = (args, options = {}) => {
     interop: "status",
     packageDir: undefined,
     execPath: "python",
+    execScriptDir: false,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
@@ -99,8 +136,10 @@ const spawnPython = (args, options = {}) => {
   }
 
   return packageDescendent.then(packageDescendent => {
-    return findPackageDir(packageDescendent).then(packageDir => {
-      options.spawn.env = pythonEnv(packageDir, options.spawn.env);
+    return findPackageDir(packageDescendent)
+    .then(packageDir => pythonEnv(packageDir, options.spawn.env))
+    .then(env => {
+      options.spawn.env = env;
       let child = child_process.spawn(options.execPath, args, options.spawn);
       switch (options.interop) {
       case "child":
@@ -141,6 +180,7 @@ const spawnPython = (args, options = {}) => {
 module.exports = {
   findPackageDir,
   findSourceArg,
+  getPythonScriptsDir,
   pythonEnv,
   spawnPython,
 }

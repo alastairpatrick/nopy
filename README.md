@@ -133,11 +133,11 @@ It might be desirable to install the python dependencies at the same time as the
 
 ## Using nopenv to run programs in the local python environment
 
-The nopenv tool is similar to nopy. Rather than passing python source files to python for execution, it is used to run executable programs in the context of an environment that includes locally installed python modules. For example, it is useful for running executable scripts installed by some python packages, which npip installs in the python_modules/.bin directory.
+The nopenv tool is similar to nopy. Rather than passing python source files to python for execution, it is used to run executable programs in the context of an environment that includes the locally installed python modules. For example, it is useful for running executable scripts installed by some python packages, which npip installs in the python_modules/.bin directory.
 
-For example, let's say the alembic python package is installed locally. To start a database migration:
+As one example, let's say the alembic python package was installed locally. To start a database migration:
 ```
-/home/al/myproject$ node_modules/.bin/nopenv python_modules/.bin/alembic revision -m "create inventory table"
+/home/al/myproject$ node_modules/.bin/nopenv alembic revision -m "create inventory table"
 Generating /path/to/yourproject/alembic/versions/1975ea83b712_create_invent
 ```
 
@@ -174,7 +174,7 @@ nopy can be installed globally so that nopy and npip are on PATH. For example:
 ...
 ```
 
-However I prefer to make do with only a local installation. npm scripts are often a solution when repeatedly typing 'node_modules/.bin' or 'python_modules/.bin' becomes cumbersome.
+However I prefer to make do with only a local installation. npm scripts are often a solution when repeatedly typing 'node_modules/.bin' becomes cumbersome.
 
 ## Gotchas
 
