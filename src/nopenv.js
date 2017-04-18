@@ -16,7 +16,6 @@ if (require.main === module) {
     };
 
     spawnPython(args, options).then(process.exit).catch(error => {
-      console.error(String(error));
       console.error(error.stack);
       process.exit(1);
     });

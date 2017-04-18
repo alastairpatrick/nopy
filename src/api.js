@@ -4,8 +4,10 @@ const fs = require("fs");
 const path = require("path");
 
 const Promise = bluebird.Promise;
+const readFile = bluebird.promisify(fs.readFile);
 const realpath = bluebird.promisify(fs.realpath);
 const stat = bluebird.promisify(fs.stat);
+const writeFile = bluebird.promisify(fs.writeFile);
 
 const PACKAGE_JSON = "package.json";
 const PYTHON_MODULES = "python_modules";
@@ -68,27 +70,37 @@ const findPackageDir = (descendent) => {
   });
 }
 
-const getPythonScriptsDir = (env = process.env) => {
-  let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
-  return new Promise((resolve, reject) => {
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", data => {
-      stdout += data;
+const getPythonScriptsDir = (packageDir, env = process.env) => {
+  let cachePath = path.join(packageDir, PYTHON_MODULES, ".scripts");
+  return readFile(cachePath, "utf-8")
+  .catch(error => {
+    if (error.code !== "ENOENT")
+      throw error;
+    let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
+    return new Promise((resolve, reject) => {
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", data => {
+        stdout += data;
+      });
+      child.stderr.on("data", data => {
+        stderr += data;
+      });
+      child.on("error", reject);
+      child.on("close", code => {
+        if (code !== 0)
+          reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
+        resolve(stdout);
+      })
+    }).then(stdout => {
+      let siteDir = (/^(.*)$/m).exec(stdout)[1];
+      let scriptsDir = path.join(siteDir, "..", "Scripts");
+      scriptsDir = path.relative(packageDir, scriptsDir);
+
+      return writeFile(cachePath, scriptsDir, "utf-8")
+      .then(() => scriptsDir)
+      .catch(() => scriptsDir)
     });
-    child.stderr.on("data", data => {
-      stderr += data;
-    });
-    child.on("error", reject);
-    child.on("close", code => {
-      if (code !== 0)
-        reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
-      resolve(stdout);
-    })
-  }).then(stdout => {
-    let siteDir = (/^(.*)$/m).exec(stdout)[1];
-    let scriptsDir = path.join(siteDir, "..", "Scripts");
-    return scriptsDir;
   });
 }
 
@@ -107,9 +119,9 @@ const pythonEnv = (packageDir, env) => {
   delete env.PYTHONNOUSERSITE;
   env.PYTHONUSERBASE = path.join(packageDir, PYTHON_MODULES);
 
-  return getPythonScriptsDir(env)
+  return getPythonScriptsDir(packageDir, env)
   .then(scriptsDir => {
-    env.PATH = joinPaths(scriptsDir, process.env.PATH);
+    env.PATH = joinPaths(path.join(packageDir, scriptsDir), process.env.PATH);
     return env;
   });
 }

@@ -6,14 +6,23 @@ const path = require("path");
 const { findPackageDir, spawnPython } = require("./api");
 
 const readFile = bluebird.promisify(fs.readFile);
+const stat = bluebird.promisify(fs.stat);
 
 const installPip = (packageDir) => {
-  return spawnPython([path.join(__dirname, "get-pip.py"), "--user"], {
-    packageDir,
-    interop: "status",
-    spawn: {
-      stdio: [process.stdin, "ignore", process.stderr],
-    }
+  return stat(path.join(packageDir, "python_modules")).catch(error => {
+    if (error.code !== "ENOENT")
+      throw error;
+    console.log("No python_modules directory; installing pip locally if needed.");
+    return spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], {
+      packageDir,
+      interop: "status",
+      spawn: {
+        stdio: "inherit",
+      }
+    }).then(code => {
+      console.log("Successfully completed pip check.");
+      return code;
+    });
   });
 }
 
@@ -66,7 +75,6 @@ const main = () => {
 
 if (require.main === module) {
   main().then(process.exit).catch(error => {
-    console.error(String(error));
     console.error(error.stack);
     process.exit(1);
   });

@@ -80,32 +80,32 @@ describe("findPackageDir", function() {
 
 describe("pythonEnv", function() {
   it("builds environment with user base directory in package directory", function() {
-    return pythonEnv("/a/b/c", {})
+    return pythonEnv(".", {})
     .then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
     });
   })
 
   it("augments environment with user base directory", function() {
-    return pythonEnv("/a/b/c", {
+    return pythonEnv(".", {
       "HOME": "/home/al",
     }).then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
       expect(env["HOME"]).to.equal("/home/al");
     });
   })
 
   it("removes env variable to disable user base directory", function() {
-    return pythonEnv("/a/b/c", {
+    return pythonEnv(".", {
       "PYTHONNOUSERSITE": "1",
     }).then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join("/a/b/c", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
     });
   })
 
   it("augments environment with package directory as python path", function() {
-    return pythonEnv("/a/b/c", {}).then(env => {
-      expect(env["PYTHONPATH"]).to.equal("/a/b/c");
+    return pythonEnv(".", {}).then(env => {
+      expect(env["PYTHONPATH"]).to.equal(".");
     });
   })
 })

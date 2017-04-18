@@ -2,11 +2,11 @@
 
 Install and run python dependencies in node.js project.
 
-This project provides an alternative to a python virtual environment for node.js projects. It aims to make pip work more like npm.
+This project provides an alternative to a python virtual environment for node.js projects. It aims to make pip work more like npm. It supports pythons 2 and 3.
 
 ## Installation
 
-First, nopy's commands are wrappers for python and pip, which are prerequisites that must already be installed. Python must be on the PATH.
+First, nopy's commands are wrappers for python. Python must be installed already and on PATH.
 
 Suppose we create an empty project with a package.json file:
 ```
@@ -39,7 +39,11 @@ Successfully installed toposort
 Cleaning up...
 ```
 
-This creates a python_modules subdirectory, which contains installed python packages.
+This creates a python_modules subdirectory, which contains installed python packages. Other pip commands are supported by npip:
+```
+$ node_modules/.bin/npip freeze
+toposort==1.5
+```
 
 ## Using nopy to run python
 
@@ -202,6 +206,8 @@ npip ships with a version of pip that it can install locally into the node.js pr
 $ node_modules/.bin/npip --version
 pip 9.0.1 from /home/al/myproject/python_modules/lib/python2.7/site-packages (python 2.7)
 ```
+
+The oldest versions of python that nopy has been tested with are 2.7.6 and 3.6.0.
 
 ## TODO
 
