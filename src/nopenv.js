@@ -1,22 +1,24 @@
 #!/usr/bin/env node
 
-const { spawnPython } = require('./api.js');
+const { findPackageDir, spawnPython } = require('./api.js');
 
 if (require.main === module) {
-  let args = process.argv.slice(3);
-  let options = {
-    packageDir: process.cwd(),
-    execPath: process.argv[2],
-    interop: "status",
-    throwNonZeroStatus: false,
-    spawn: {
-      stdio: "inherit",
-    },
-  };
+  return findPackageDir().then(packageDir => {
+    let args = process.argv.slice(3);
+    let options = {
+      packageDir,
+      execPath: process.argv[2],
+      interop: "status",
+      throwNonZeroStatus: false,
+      spawn: {
+        stdio: "inherit",
+      },
+    };
 
-  spawnPython(args, options).then(process.exit).catch(error => {
-    console.error(String(error));
-    console.error(error.stack);
-    process.exit(1);
+    spawnPython(args, options).then(process.exit).catch(error => {
+      console.error(String(error));
+      console.error(error.stack);
+      process.exit(1);
+    });
   });
 }

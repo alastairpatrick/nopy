@@ -35,37 +35,37 @@ describe("findSourceArg", function() {
 describe("findPackageDir", function() {
   it("returns dir for undefined descendent.", function() {
     return findPackageDir().then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("returns dir for non-existent descendent.", function() {
     return findPackageDir("src/test/does-not-exist.py").then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/test.py", function() {
     return findPackageDir("src/test/test.py").then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/", function() {
     return findPackageDir("src/test/").then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src", function() {
     return findPackageDir("src").then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for .", function() {
     return findPackageDir(".").then(dir => {
-      expect(dir).to.equal(".");
+      expect(dir).to.equal(path.resolve("."));
     });
   })
 

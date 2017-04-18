@@ -114,13 +114,15 @@ $ node_modules/.bin/npip install
 Requirement already satisfied: toposort
 ```
 
-It might be desirable to install the python dependencies at the same time as the other dependencies. This can be accomplished with an npm install script.
+It might be desirable to install the python dependencies at the same time as the other dependencies. This can be accomplished with an npm install script. While we're at it, it would be convenient to be able to invoke nopy and npip through npm scripts too.
 ```
 {
   "name": "myproject",
   ...
   "scripts": {
-    "install": "npip install"
+    "install": "npip install",
+    "npip": "npip",
+    "nopy": "nopy"
   },
   "dependencies": {
     "nopy": "^1.0.0"
@@ -134,6 +136,11 @@ It might be desirable to install the python dependencies at the same time as the
 Now both the node.js and python dependencies can be installed with a single command:
 ```
 $ npm install
+```
+
+And now if we want to install another python dependency, we can use an npm script:
+```
+$ npm run npip -- install pytz
 ```
 
 ## Using nopenv to run programs in the local python environment
@@ -184,15 +191,20 @@ However, I prefer to make do with only a local installation. npm scripts are oft
 
 ## Gotchas
 
-Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside package.json. This tells python to look there for python modules. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
+When a python program is invoked with nopy, its PYTHONPATH environment variable is modified to point to the node.js project directory, i.e. he one containing package.json. This allows modules to be imported relative to the project directory itself, not just from python packages that have been installed python_modules. In order to isolate the project's python dependencies, any previous value of PYTHONPATH is overridden.
 
-This is what we want. One caveat though is, because python's per user site-packages directory has been overridden, any other such directory, perhaps one residing in the user's home directory, will no longer be visible to python. If the goal is to isolate the project's python dependencies within the project, in some ways this is a feature. It's definitely a potential gotcha, though!
+Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside package.json. This tells python to look there for installed pythonpackages. Additionally, pip is invoked with the `--user` option, which causes it to install packages in python_modules.
 
-Similarly, when a python program is invoked, its PYTHONPATH environment variable is modified to point to the project directory, the one containing package.json. In order to isolate the project's python dependencies, any previous value of PYTHONPATH is overridden. This allows modules to be imported relative to the project directory itself, not just from python packages that have been installed python_modules.
+A caveat though is, because python's per user site-packages directory is overridden, any other such directory, such as one residing in the user's home directory, is no longer be visible to python. If the goal is to isolate the project's python dependencies within the project, this is a feature. It's definitely a potential gotcha, though!
+
+npip ships with a version of pip that it can install locally into the node.js project site directory. It does this automatically when the first python package is installed but only if there is not a more recent version of pip installed globally. You can see which version of pip is used by npip using the --version option.
+```
+$ node_modules/.bin/npip --version
+pip 9.0.1 from /home/al/myproject/python_modules/lib/python2.7/site-packages (python 2.7)
+```
 
 ## TODO
 
 These are some things that might happen in the future.
 * There is a node.js API to programatically spawn python programs. This could be documented and made "official".
 * Integrate JSON-RPC or other protocol over channel between node.js process and python child processes.
-* To support older pythons, consider distribing get-pip.py or provide some other way to install pip in python_modules.
