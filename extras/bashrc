@@ -1,0 +1,18 @@
+# Put this in $HOME/.bashrc so it runs whenever bash starts interactively.
+
+function npmrun()
+{
+  local command=$1
+  shift
+  npm --silent --color false run "$command" -- $@
+}
+
+function npip()
+{
+  npmrun npip $@
+}
+
+function nopy()
+{
+  npmrun nopy $@
+}
