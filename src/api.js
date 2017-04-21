@@ -41,7 +41,7 @@ const findSourceArg = (args) => {
   return -1;
 }
 
-const findPackageDir = (descendent) => {
+const findPackage = (descendent) => {
   if (descendent)
     descendent = path.resolve(descendent);
   else
@@ -63,10 +63,10 @@ const findPackageDir = (descendent) => {
       .catch(() => false)
   })
   .then(packages => {
-    packages = packages.filter(package => package);
+    packages = packages.filter(pkg => pkg);
     if (packages.length === 0)
       throw new Error("Could not find directory containing package.json");
-    return packages[0];
+    return new Package(packages[0]);
   });
 }
 
@@ -111,35 +111,45 @@ const joinPaths = (...paths) => {
   return paths.filter(p => p).join(sep);
 }
 
-const pythonEnv = (packageDir, env) => {
-  env = Object.assign({}, env || process.env);
+class Package {
+  constructor(dir) {
+    this.dir = dir;
+  }
 
-  env.PYTHONPATH = packageDir;
+  readJSON() {
+    return readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
+  }
 
-  delete env.PYTHONNOUSERSITE;
-  env.PYTHONUSERBASE = path.join(packageDir, PYTHON_MODULES);
+  pythonEnv(env) {
+    env = Object.assign({}, env || process.env);
 
-  return getPythonScriptsDir(packageDir, env)
-  .then(scriptsDir => {
-    env.PATH = joinPaths(path.join(packageDir, scriptsDir), process.env.PATH);
-    return env;
-  });
+    env.PYTHONPATH = this.dir;
+
+    delete env.PYTHONNOUSERSITE;
+    env.PYTHONUSERBASE = path.join(this.dir, PYTHON_MODULES);
+
+    return getPythonScriptsDir(this.dir, env)
+    .then(scriptsDir => {
+      env.PATH = joinPaths(path.join(this.dir, scriptsDir), process.env.PATH);
+      return env;
+    });
+  }
 }
 
 const spawnPython = (args, options = {}) => {
   args = args.slice(0);
   options = Object.assign({
     interop: "status",
-    packageDir: undefined,
+    package: undefined,
     execPath: "python",
     execScriptDir: false,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
 
-  let packageDir;
-  if (options.packageDir) {
-    packageDir = Promise.resolve(options.packageDir);
+  let pkg;
+  if (options.package) {
+    pkg = Promise.resolve(options.package);
   } else {
     let sourcePathIdx = findSourceArg(args);
     let sourcePath;
@@ -147,13 +157,13 @@ const spawnPython = (args, options = {}) => {
       sourcePath = args[sourcePathIdx];
 
     if (sourcePath)
-      packageDir = realpath(sourcePath).then(findPackageDir);
+      pkg = realpath(sourcePath).then(findPackage);
     else
-      packageDir = findPackageDir(process.cwd());
+      pkg = findPackage(process.cwd());
   }
 
-  return packageDir
-  .then(packageDir => pythonEnv(packageDir, options.spawn.env))
+  return pkg
+  .then(pkg => pkg.pythonEnv(options.spawn.env))
   .then(env => {
     options.spawn.env = env;
     let child = child_process.spawn(options.execPath, args, options.spawn);
@@ -193,9 +203,9 @@ const spawnPython = (args, options = {}) => {
 }
 
 module.exports = {
-  findPackageDir,
+  Package,
+  findPackage,
   findSourceArg,
   getPythonScriptsDir,
-  pythonEnv,
   spawnPython,
 }

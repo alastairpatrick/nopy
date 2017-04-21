@@ -1,6 +1,6 @@
 const path = require('path');
 const { expect } = require('chai');
-const { findSourceArg, findPackageDir, pythonEnv, spawnPython } = require('../..');
+const { Package, findSourceArg, findPackage, spawnPython } = require('../..');
 
 describe("findSourceArg", function() {
   it("finds lone source arg", function() {
@@ -32,80 +32,92 @@ describe("findSourceArg", function() {
   });
 })
 
-describe("findPackageDir", function() {
+describe("findPackage", function() {
   it("returns dir for undefined descendent.", function() {
-    return findPackageDir().then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage().then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("returns dir for non-existent descendent.", function() {
-    return findPackageDir("src/test/does-not-exist.py").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage("src/test/does-not-exist.py").then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/test.py", function() {
-    return findPackageDir("src/test/test.py").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage("src/test/test.py").then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src/test/", function() {
-    return findPackageDir("src/test/").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage("src/test/").then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for src", function() {
-    return findPackageDir("src").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage("src").then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("finds dir for .", function() {
-    return findPackageDir(".").then(dir => {
-      expect(dir).to.equal(path.resolve("."));
+    return findPackage(".").then(pkg => {
+      expect(pkg.dir).to.equal(path.resolve("."));
     });
   })
 
   it("does not find dir for /", function() {
-    return findPackageDir("/").then(() => {
+    return findPackage("/").then(() => {
       throw "Expected exception";
     }).catch(error => {
       expect(error.message).to.equal("Could not find directory containing package.json");
     });
   })
+
+  it("can read package JSON", function() {
+    return findPackage().then(pkg => pkg.readJSON()).then(json => {
+      expect(json.name).to.equal("nopy");
+    });
+  });
 })
 
-describe("pythonEnv", function() {
+describe("Package", function() {
+  let pkg;
+  let packageDir = path.join(__dirname, "../..");
+  beforeEach(function() {
+    pkg = new Package(packageDir);
+  });
+
   it("builds environment with user base directory in package directory", function() {
-    return pythonEnv(".", {})
+    return pkg.pythonEnv({})
     .then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(packageDir, "python_modules"));
     });
   })
 
   it("augments environment with user base directory", function() {
-    return pythonEnv(".", {
+    return pkg.pythonEnv({
       "HOME": "/home/al",
     }).then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(packageDir, "python_modules"));
       expect(env["HOME"]).to.equal("/home/al");
     });
   })
 
   it("removes env variable to disable user base directory", function() {
-    return pythonEnv(".", {
+    return pkg.pythonEnv({
       "PYTHONNOUSERSITE": "1",
     }).then(env => {
-      expect(env["PYTHONUSERBASE"]).to.equal(path.join(".", "python_modules"));
+      expect(env["PYTHONUSERBASE"]).to.equal(path.join(packageDir, "python_modules"));
     });
   })
 
   it("augments environment with package directory as python path", function() {
-    return pythonEnv(".", {}).then(env => {
-      expect(env["PYTHONPATH"]).to.equal(".");
+    return pkg.pythonEnv({}).then(env => {
+      expect(env["PYTHONPATH"]).to.equal(packageDir);
     });
   })
 })

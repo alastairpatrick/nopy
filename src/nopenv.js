@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-const { findPackageDir, spawnPython } = require('./api.js');
+const { findPackage, spawnPython } = require('./api.js');
 
 if (require.main === module) {
-  return findPackageDir().then(packageDir => {
+  return findPackage().then(pkg => {
     let args = process.argv.slice(3);
     let options = {
-      packageDir,
+      package: pkg,
       execPath: process.argv[2],
       interop: "status",
       throwNonZeroStatus: false,

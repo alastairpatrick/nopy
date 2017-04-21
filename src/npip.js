@@ -3,18 +3,17 @@
 const bluebird = require("bluebird");
 const fs = require("fs");
 const path = require("path");
-const { findPackageDir, spawnPython } = require("./api");
+const { findPackage, spawnPython } = require("./api");
 
-const readFile = bluebird.promisify(fs.readFile);
 const stat = bluebird.promisify(fs.stat);
 
-const installPip = (packageDir) => {
-  return stat(path.join(packageDir, "python_modules")).catch(error => {
+const installPip = (pkg) => {
+  return stat(path.join(pkg.dir, "python_modules")).catch(error => {
     if (error.code !== "ENOENT")
       throw error;
     console.log("No python_modules directory; installing pip locally if needed.");
     return spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], {
-      packageDir,
+      package: pkg,
       interop: "status",
       spawn: {
         stdio: "inherit",
@@ -27,16 +26,14 @@ const installPip = (packageDir) => {
 }
 
 const main = () => {
-  return findPackageDir().then(packageDir => {
-    return readFile(path.join(packageDir, "package.json")).then(data => {
-      let pkg = JSON.parse(data);
-
-      return installPip(packageDir).then(() => {
+  return findPackage().then(pkg => {
+    return pkg.readJSON().then(json => {
+      return installPip(pkg).then(() => {
         let args = process.argv.slice(2);
         let command = args[0];
 
         if (command == "install" && args.length === 1) {
-          let deps = pkg.pythonDependencies;
+          let deps = json.pythonDependencies;
           let count = 0;
           if (deps && typeof deps === "object") {
             for (let name in deps) {
@@ -61,7 +58,7 @@ const main = () => {
         args.unshift("-m", "pip");
 
         return spawnPython(args, {
-          packageDir,
+          package: pkg,
           interop: "status",
           throwNonZeroStatus: false,
           spawn: {
