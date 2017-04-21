@@ -41,6 +41,89 @@ const findSourceArg = (args) => {
   return -1;
 }
 
+const getPythonScriptsDir = (packageDir, env = process.env) => {
+  let cachePath = path.join(packageDir, PYTHON_MODULES, ".scripts");
+  return readFile(cachePath, "utf-8")
+  .then(relativePath => path.join(packageDir, relativePath))
+  .catch(error => {
+    if (error.code !== "ENOENT")
+      throw error;
+    let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
+    return new Promise((resolve, reject) => {
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", data => {
+        stdout += data;
+      });
+      child.stderr.on("data", data => {
+        stderr += data;
+      });
+      child.on("error", reject);
+      child.on("close", code => {
+        if (code !== 0)
+          reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
+        resolve(stdout);
+      })
+    }).then(stdout => {
+      let siteDir = (/^(.*)$/m).exec(stdout)[1];
+      let scriptsDir = path.normalize(path.join(siteDir, "..", "Scripts"));
+      let relativePath = path.relative(packageDir, scriptsDir);
+
+      return writeFile(cachePath, relativePath, "utf-8")
+      .then(() => scriptsDir)
+      .catch(() => scriptsDir)
+    });
+  });
+}
+
+const joinPaths = (...paths) => {
+  let sep = ":";
+  if (process.platform === "win32")
+    sep = ";";
+  return paths.filter(p => p).join(sep);
+}
+
+// Environment variables are case insensitive on Windows.
+const fixEnv = (env) => {
+  if (process.platform !== "win32")
+    return env;
+
+  let upperEnv = {};
+  for (let key in env) {
+    if (Object.prototype.hasOwnProperty.call(env, key))
+      upperEnv[key.toUpperCase()] = env[key];
+  }
+
+  return upperEnv;
+}
+
+class Package {
+  constructor(dir) {
+    this.dir = path.resolve(dir);
+  }
+
+  readJSON() {
+    return readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
+  }
+
+  pythonEnv(env) {
+    env = Object.assign({}, env || process.env);
+
+    env.PYTHONPATH = this.dir;
+
+    delete env.PYTHONNOUSERSITE;
+    env.PYTHONUSERBASE = path.join(this.dir, PYTHON_MODULES);
+
+    let upperEnv = fixEnv(env);
+
+    return getPythonScriptsDir(this.dir, env)
+    .then(scriptsDir => {
+      env.PATH = joinPaths(scriptsDir, upperEnv.PATH || "");
+      return env;
+    });
+  }
+}
+
 const findPackage = (descendent) => {
   if (descendent)
     descendent = path.resolve(descendent);
@@ -68,72 +151,6 @@ const findPackage = (descendent) => {
       throw new Error("Could not find directory containing package.json");
     return new Package(packages[0]);
   });
-}
-
-const getPythonScriptsDir = (packageDir, env = process.env) => {
-  let cachePath = path.join(packageDir, PYTHON_MODULES, ".scripts");
-  return readFile(cachePath, "utf-8")
-  .catch(error => {
-    if (error.code !== "ENOENT")
-      throw error;
-    let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
-    return new Promise((resolve, reject) => {
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", data => {
-        stdout += data;
-      });
-      child.stderr.on("data", data => {
-        stderr += data;
-      });
-      child.on("error", reject);
-      child.on("close", code => {
-        if (code !== 0)
-          reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
-        resolve(stdout);
-      })
-    }).then(stdout => {
-      let siteDir = (/^(.*)$/m).exec(stdout)[1];
-      let scriptsDir = path.join(siteDir, "..", "Scripts");
-      scriptsDir = path.relative(packageDir, scriptsDir);
-
-      return writeFile(cachePath, scriptsDir, "utf-8")
-      .then(() => scriptsDir)
-      .catch(() => scriptsDir)
-    });
-  });
-}
-
-const joinPaths = (...paths) => {
-  let sep = ":";
-  if (process.platform === "win32")
-    sep = ";";
-  return paths.filter(p => p).join(sep);
-}
-
-class Package {
-  constructor(dir) {
-    this.dir = dir;
-  }
-
-  readJSON() {
-    return readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
-  }
-
-  pythonEnv(env) {
-    env = Object.assign({}, env || process.env);
-
-    env.PYTHONPATH = this.dir;
-
-    delete env.PYTHONNOUSERSITE;
-    env.PYTHONUSERBASE = path.join(this.dir, PYTHON_MODULES);
-
-    return getPythonScriptsDir(this.dir, env)
-    .then(scriptsDir => {
-      env.PATH = joinPaths(path.join(this.dir, scriptsDir), process.env.PATH);
-      return env;
-    });
-  }
 }
 
 const spawnPython = (args, options = {}) => {
@@ -206,6 +223,5 @@ module.exports = {
   Package,
   findPackage,
   findSourceArg,
-  getPythonScriptsDir,
   spawnPython,
 }

@@ -115,9 +115,17 @@ describe("Package", function() {
     });
   })
 
-  it("augments environment with package directory as python path", function() {
+  it("augments environment with package directory as PYTHONPATH", function() {
     return pkg.pythonEnv({}).then(env => {
       expect(env["PYTHONPATH"]).to.equal(packageDir);
+    });
+  })
+
+  it("augments environment with scripts directory prepended to PATH", function() {
+    return pkg.pythonEnv({
+      "PATH": "/home/al/bin"
+    }).then(env => {
+      expect(env["PATH"]).to.match(/Scripts[:;]\/home\/al\/bin$/);
     });
   })
 })
