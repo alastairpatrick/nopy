@@ -220,6 +220,26 @@ $ npm run -s mako -- template.mako --var NAME=Al
 Hello, Al!
 ```
 
+## PYTHONPATH
+
+By default, nopy sets the `PYTHONPATH` environment variable to the project directory, i.e. the directory containing package.json, replacing any previous value. 
+
+A different path may be used by putting it in the `pythonPath` section of package.json. Relative paths are relative to the project directory. An array of paths may also be provided.
+
+In the example below, `PYTHONPATH` will be set so that python searches first in the project directory for modules and then in the src sub-directory.
+```
+{
+  "name": "myproject",
+  ...
+  "pythonPath": [".", "src"],
+  ...
+}
+```
+
+Note that modules from python packages installed in python_modules will be on the search path, regardless of `PYTHONPATH`, since they are in the user site-packages directory.
+
+Finally, remember that python prepends the directory containing the python script to the module search path and often you don't need to mess with `PYTHONPATH` at all.
+
 ## Global installation
 
 nopy can be installed globally so that nopy and npip are on PATH. For example:
@@ -233,6 +253,8 @@ $ npip install <package name>
 However, I prefer to make do with only a local installation, npm scripts and bash aliases. The reason is because I generally want to minimize the number of globally installed things necessary to make a project work.
 
 ## Tips
+
+### Interactive Shells
 
 For interactive shells, you might like some shortcuts. Here are some examples for bash:
 ```
@@ -277,6 +299,20 @@ Here is a usage example:
 $ npip freeze
 toposort==1.5
 mako==1.0.6
+```
+
+### .gitignore
+
+You probably want git to ignore the python_modules directory and some other things.
+
+```
+# .gitignore
+...
+# Python things to ignore
+python_modules
+__pycache__
+*.pyc
+...
 ```
 
 ## Gotchas

@@ -82,6 +82,17 @@ describe("findPackage", function() {
       expect(json.name).to.equal("nopy");
     });
   });
+
+  it("can read cached package JSON", function() {
+    return findPackage().then(pkg => {
+      pkg.readJSON().then(json => {
+        expect(json.name).to.equal("nopy");
+      });
+      pkg.readJSON().then(json => {
+        expect(json.name).to.equal("nopy");
+      });
+    });
+  });
 })
 
 describe("Package", function() {
@@ -117,7 +128,7 @@ describe("Package", function() {
 
   it("augments environment with package directory as PYTHONPATH", function() {
     return pkg.pythonEnv({}).then(env => {
-      expect(env["PYTHONPATH"]).to.equal(packageDir);
+      expect(env["PYTHONPATH"]).to.equal(path.join(packageDir, "src"));
     });
   })
 

@@ -28,8 +28,12 @@ build/Release
 
 # Dependency directories
 node_modules
-python_modules
 jspm_packages
+
+# Python things to ignore
+python_modules
+__pycache__
+*.pyc
 
 # Optional npm cache directory
 .npm

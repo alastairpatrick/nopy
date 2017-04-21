@@ -103,23 +103,31 @@ class Package {
   }
 
   readJSON() {
-    return readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
+    let result = readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
+    this.readJSON = () => result;
+    return result;
   }
 
   pythonEnv(env) {
     env = Object.assign({}, env || process.env);
-
-    env.PYTHONPATH = this.dir;
 
     delete env.PYTHONNOUSERSITE;
     env.PYTHONUSERBASE = path.join(this.dir, PYTHON_MODULES);
 
     let upperEnv = fixEnv(env);
 
-    return getPythonScriptsDir(this.dir, env)
-    .then(scriptsDir => {
-      env.PATH = joinPaths(scriptsDir, upperEnv.PATH || "");
-      return env;
+    return this.readJSON().then(json => {
+      let pythonPath = json.pythonPath || ".";
+      if (!Array.isArray(pythonPath))
+        pythonPath = [pythonPath];
+      pythonPath = pythonPath.map(p => path.resolve(this.dir, p));
+      env.PYTHONPATH = joinPaths(...pythonPath);
+
+      return getPythonScriptsDir(this.dir, env)
+      .then(scriptsDir => {
+        env.PATH = joinPaths(scriptsDir, upperEnv.PATH || "");
+        return env;
+      });
     });
   }
 }
