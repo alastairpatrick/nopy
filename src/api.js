@@ -167,7 +167,6 @@ const spawnPython = (args, options = {}) => {
     interop: "status",
     package: undefined,
     execPath: "python",
-    execScriptDir: false,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
