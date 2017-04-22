@@ -103,7 +103,18 @@ class Package {
   }
 
   readJSON() {
-    let result = readFile(path.join(this.dir, PACKAGE_JSON)).then(JSON.parse);
+    let result = readFile(path.join(this.dir, PACKAGE_JSON)).then(text => {
+      let json = JSON.parse(text);
+      json = Object.assign({
+        python: {},
+      }, json);
+      json.python.dependencies = Object.assign({}, json.python.dependencies);
+      json.python.devDependencies = Object.assign({}, json.python.devDependencies);
+      json.python.path = json.python.path || ".";
+      if (!Array.isArray(json.python.path))
+        json.python.path = [json.python.path];
+      return json;
+    });
     this.readJSON = () => result;
     return result;
   }
@@ -117,9 +128,7 @@ class Package {
     let upperEnv = fixEnv(env);
 
     return this.readJSON().then(json => {
-      let pythonPath = json.pythonPath || ".";
-      if (!Array.isArray(pythonPath))
-        pythonPath = [pythonPath];
+      let pythonPath = json.python.path;
       pythonPath = pythonPath.map(p => path.resolve(this.dir, p));
       env.PYTHONPATH = joinPaths(...pythonPath);
 

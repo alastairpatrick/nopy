@@ -26,22 +26,24 @@ const installPip = (pkg) => {
 }
 
 const main = () => {
+  let args = process.argv.slice(2);
+  let command = args[0];
+
   return findPackage().then(pkg => {
     return pkg.readJSON().then(json => {
-      return installPip(pkg).then(() => {
-        let args = process.argv.slice(2);
-        let command = args[0];
+      let installed = Promise.resolve();
+      if (command === "install")
+        installed = installPip(pkg);
 
+      return installed.then(() => {
         if (command == "install" && args.length === 1) {
-          let deps = json.pythonDependencies;
+          let deps = Object.assign({}, json.python.dependencies, json.python.devDependencies);
           let count = 0;
-          if (deps && typeof deps === "object") {
-            for (let name in deps) {
-              if (Object.prototype.hasOwnProperty.call(deps, name)) {
-                let version = deps[name];
-                args.push(name + version);
-                ++count;
-              }
+          for (let name in deps) {
+            if (Object.prototype.hasOwnProperty.call(deps, name)) {
+              let version = deps[name];
+              args.push(name + version);
+              ++count;
             }
           }
 

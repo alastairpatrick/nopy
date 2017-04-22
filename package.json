@@ -1,6 +1,6 @@
 {
   "name": "nopy",
-  "version": "0.1.18",
+  "version": "0.2.0",
   "description": "Install and run python dependencies in node.js project.",
   "keywords": [
     "dependency",
@@ -16,19 +16,23 @@
   "bugs": "https://github.com/alastairpatrick/nopy/issues",
   "main": "./src/api.js",
   "scripts": {
-    "test": "mocha **/*.spec.js"
+    "test": "mocha **/*.spec.js",
+    "nopy": "node src/nopy.js",
+    "npip": "node src/npip.js"
   },
   "bin": {
     "nopenv": "./src/nopenv.js",
     "nopy": "./src/nopy.js",
     "npip": "./src/npip.js"
   },
-  "pythonPath": "src",
   "dependencies": {
     "bluebird": "^3.5.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^3.2.0"
+  },
+  "python": {
+    "path": "src"
   }
 }

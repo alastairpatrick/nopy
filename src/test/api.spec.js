@@ -89,6 +89,11 @@ describe("findPackage", function() {
         expect(json.name).to.equal("nopy");
       });
       pkg.readJSON().then(json => {
+        expect(json.python).to.deep.equal({
+          "path": ["src"],
+          "dependencies": {},
+          "devDependencies": {},
+        });
         expect(json.name).to.equal("nopy");
       });
     });
