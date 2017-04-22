@@ -6,9 +6,9 @@ This project is an alternative to a python virtual environment for node.js proje
 
 ## Installation
 
-As a prerequisite, python and npm must be installed and on PATH.
+As a prerequisite, python and npm must be installed and on `PATH`.
 
-Suppose we create an empty project with a package.json file:
+Suppose we create an empty project with a `package.json` file:
 ```
 /home/al$ mkdir myproject
 /home/al$ cd myproject
@@ -27,7 +27,7 @@ $ npm install nopy --save
 ...
 ```
 
-Optionally, add scripts to package.json to run the command line tools via npm:
+Optionally, add scripts to `package.json` to run the command line tools via npm:
 ```
 {
   "name": "myproject",
@@ -59,7 +59,7 @@ Successfully installed toposort
 Cleaning up...
 ```
 
-This creates a python_modules subdirectory, which contains installed python packages. Other pip commands are supported by npip:
+This creates a `python_modules` subdirectory, which contains the installed python packages. Other pip commands are supported by npip:
 ```
 $ npm run -s npip -- freeze
 toposort==1.5
@@ -67,7 +67,7 @@ toposort==1.5
 
 ## Using nopy to run python
 
-Invoke python using the nopy wrapper and it will find the python packages installed in python_modules.
+Invoke python using the nopy wrapper and it will find the python packages installed in `python_modules`.
 ```
 $ npm run nopy
 ...
@@ -83,15 +83,17 @@ Type "help", "copyright", "credits" or "license" for more information.
 [{3, 5, 7}, {8, 11}, {2, 10}, {9}]
 ```
 
-Here, when python was invoked interactively, it looked in the python_modules subdirectory to find the locally installed toposort dependency.
+Here, when python was invoked interactively, it looked in the `python_modules` subdirectory to find the locally installed toposort dependency.
 
-Suppose the program above was saved in a file called some_program.py. To direct python to invoke that file:
+Suppose the program above was saved in as a script file called `script.py`. To direct python to invoke that script file:
 ```
-$ npm run -s nopy -- some_program.py
+$ npm run -s nopy -- script.py
 [{3, 5, 7}, {8, 11}, {2, 10}, {9}]
 ```
 
-Python interpreter command line options and arguments that will be visible to the python program via `sys.argv` may be passed to nopy via the command line. To pass python code on the command line, use python's `-c` option:
+Both python command line options and script arguments may be passed to nopy via the command line in the same way as they would be passed to python.
+
+To pass python code on the command line, use python's `-c` option:
 ```
 $ npm run -s nopy -- -c 'import sys; print(sys.argv[1]);' hello
 hello
@@ -99,13 +101,13 @@ hello
 
 Similarly, pythons's `-m` option may be used to execute python modules.
 
-What magic does nopy use to find the `python_modules` directory? When nopy is invoked with the path to a python program to run, it first inspects the directory containing that program to see if it has a `package.json` file. If it's there, then it will try to use a `python_modules` directory alongside it. If `package.json` isn't found, it works up the directory hierarchy until it reaches the root. If a `package.json` file is found anywhere along the way, it tries to use a sibling `python_modules` directory. This resembles the mechanism that node.js uses to resolve modules.
+To find the `python_modules` directory, when nopy is invoked with the path to a script, it first inspects the directory containing that script to see if it has a `package.json` file. If it's there, then it will try to use a `python_modules` directory alongside it. If `package.json` isn't found, it works up the directory hierarchy towards the root. If a `package.json` file is found anywhere along the way, it tries to use a sibling `python_modules` directory. This resembles the mechanism that node.js uses to resolve modules.
 
-If nopy is invoked with no path to a program to run, e.g. if it is invoked interactively or with `-m` or `-c`, the process is quite similar. Instead of starting at a directory given by the path, it starts in the current working directory.
+If nopy is invoked with no script path, e.g. if it is invoked interactively or with `-m` or `-c`, the process is quite similar. Instead of starting in the script's directory, it starts in the current working directory.
 
 ## Documenting python dependencies
 
-Python dependencies should be listed in the package.json file in the same way as for node.js dependencies, except the section is called "pythonDependencies" rather than "dependencies". Here is an example package.json file:
+Python dependencies should be listed in the `package.json` file in the same way as for node.js dependencies, except the section is called `pythonDependencies` rather than `dependencies`. Here is an example package.json file:
 ```
 {
   "name": "myproject",
@@ -121,7 +123,7 @@ Python dependencies should be listed in the package.json file in the same way as
 
 A version may be specified for python dependencies, which follows the same format as used by [pip requirement specifiers](https://www.python.org/dev/peps/pep-0508/). The version may be an empty string.
 
-This serves not only to document the python dependencies; if `npip install` is invoked with no requirements, its default action is to install all the python dependencies given in package.json.
+This serves not only to document the python dependencies; if `npip install` is invoked with no requirements, its default action is to install all the python dependencies given in `package.json`.
 ```
 $ npm run npip -- install
 ...
@@ -154,9 +156,9 @@ $ npm install
 
 ## Using nopenv to run programs in the local python environment
 
-The nopenv tool is similar to nopy. Rather than passing python source files to python for execution, it is used to run executable programs in the context of an environment that includes the locally installed python modules. For example, it is useful for running executable scripts installed by some python packages.
+The nopenv tool is similar to nopy. Rather than invoking the python interpreter with a python script, it is used to run executable programs in the context of a python environment, including locally installed python modules. For example, it is useful for running executables installed by some python packages.
 
-The [mako](http://www.makotemplates.org/) python package will be used as an example in this section. It is a popular template library. It is not related to nopy in any way but is a useful example because it installs an executable in python's scripts directory that we might want to run. To install mako, add it to the pythonDependencies of package.json:
+The [mako](http://www.makotemplates.org/) python package will be used as an example in this section. It is a popular template library. It is not related to nopy in any way but is a useful example because it installs an executable called mako-render that we might want to run. To install mako, add it to the `pythonDependencies` section of `package.json`:
 ```
 {
   "name": "myproject",
@@ -181,7 +183,7 @@ Then reinstall:
 $ npm install
 ```
 
-Suppose we have a file template.mako containing a simple template:
+Suppose we have a file `template.mako` containing a simple template:
 ```
 ## template.mako
 Hello, ${NAME}!
@@ -193,7 +195,7 @@ $ node_modules/.bin/nopenv mako-render template.mako --var NAME=Al
 Hello, Al!
 ```
 
-It's convenient to make an npm script in package.json to quickly invoke mako-render:
+It's convenient to make an npm script in `package.json` to quickly invoke mako-render:
 ```
 {
   "name": "myproject",
@@ -222,11 +224,11 @@ Hello, Al!
 
 ## PYTHONPATH
 
-By default, nopy sets the `PYTHONPATH` environment variable to the project directory, i.e. the directory containing package.json, replacing any previous value. 
+By default, nopy sets the `PYTHONPATH` environment variable to the project directory, i.e. the directory containing `package.json`, replacing any previous value. 
 
-A different path may be used by putting it in the `pythonPath` section of package.json. Relative paths are relative to the project directory. An array of paths may also be provided.
+A different path may be used by putting it in the `pythonPath` section of `package.json`. Relative paths are relative to the project directory. An array of paths may also be provided.
 
-In the example below, `PYTHONPATH` will be set so that python searches first in the project directory for modules and then in the src sub-directory.
+In the example below, `PYTHONPATH` will be set so that python searches first in the project directory for modules and then in the `src` sub-directory.
 ```
 {
   "name": "myproject",
@@ -236,13 +238,13 @@ In the example below, `PYTHONPATH` will be set so that python searches first in 
 }
 ```
 
-Note that modules from python packages installed in python_modules will be on the search path, regardless of `PYTHONPATH`, since they are in the user site-packages directory.
+Note that modules from python packages installed in python_modules will be on the search path regardless of `PYTHONPATH`, since they are in the user site-packages directory.
 
 Finally, remember that python prepends the directory containing the python script to the module search path and often you don't need to mess with `PYTHONPATH` at all.
 
 ## Global installation
 
-nopy can be installed globally so that nopy and npip are on PATH. For example:
+nopy can be installed globally so that nopy and npip are on `PATH`. For example:
 ```
 $ npm install nopy -g
 ...
@@ -303,7 +305,7 @@ mako==1.0.6
 
 ### .gitignore
 
-You probably want git to ignore the python_modules directory and some other things.
+You probably want git to ignore the `python_modules` directory and some other things.
 
 ```
 # .gitignore
@@ -317,13 +319,13 @@ __pycache__
 
 ## Gotchas
 
-When a python program is invoked with nopy, its PYTHONPATH environment variable is modified to point to the node.js project directory, i.e. the one containing package.json. This allows modules to be imported relative to the project directory itself, not just from python packages that have been installed in python_modules. In order to isolate the project's python dependencies, any previous value of PYTHONPATH is overridden.
+When a python script is invoked with nopy, its `PYTHONPATH` environment variable is modified to point to the node.js project directory, i.e. the one containing `package.json`, or whichever directories have been configured. This allows modules to be imported relative to the project directory itself, not just from python packages that have been installed in `python_modules`. In order to isolate the project's python dependencies, any previous value of `PYTHONPATH` is overridden.
 
-Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside package.json. This tells python to look there for installed python packages. Additionally, pip is invoked with the `--user` option, which causes it to install packages in that python_modules directory.
+Behind the scene, nopy uses python's [per user site-packages directory](https://www.python.org/dev/peps/pep-0370/) mechanism. Specifically, when python or pip are invoked indirectly by way of the nopy or npip wrappers, the `PYTHONUSERBASE` environment variable is modified to reference the python_modules directory contained in the node.js project, the one alongside package.json. This tells python to look there for installed python packages. Additionally, pip is invoked with the `--user` option, which causes it to install packages in that `python_modules` directory.
 
 A caveat though is, because python's per user site-packages directory is overridden, any other such directory, such as one residing in the user's home directory, is no longer visible to python. If the goal is to isolate the project's python dependencies within the project, this is a feature. It's definitely a potential gotcha, though!
 
-npip ships with a version of pip that it can install locally into the node.js project site directory. It does this automatically when the first python package is installed but only if there is not a more recent version of pip installed globally. You can see which version of pip is used by npip using the --version option.
+npip ships with a version of pip that it can install locally into the node.js project site directory. It does this automatically when the first python package is installed but only if there is not a more recent version of pip installed globally. To see which version of pip is used by npip, use the `--version` option:
 ```
 $ npm run -s npip -- --version
 pip 9.0.1 from /home/al/myproject/python_modules/lib/python2.7/site-packages (python 2.7)
