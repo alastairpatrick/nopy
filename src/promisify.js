@@ -1,3 +1,5 @@
+"use strict";
+
 const promisify = (fn) => {
   return function (...args) {
     return new Promise((resolve, reject) => {

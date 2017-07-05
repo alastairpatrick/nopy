@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+"use strict";
+
 const { spawnPython } = require('./api.js');
 
 if (require.main === module) {

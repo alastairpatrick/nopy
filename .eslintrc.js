@@ -273,10 +273,6 @@ module.exports = {
             "error",
             "always"
         ],
-        "strict": [
-            "error",
-            "never"
-        ],
         "symbol-description": "error",
         "template-curly-spacing": [
             "error",

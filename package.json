@@ -1,6 +1,6 @@
 {
   "name": "nopy",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Install and run python dependencies in node.js project.",
   "keywords": [
     "dependency",

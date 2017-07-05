@@ -1,3 +1,5 @@
+"use strict";
+
 const path = require('path');
 const { expect } = require('chai');
 const { Package, findSourceArg, findPackage, spawnPython } = require('../..');
