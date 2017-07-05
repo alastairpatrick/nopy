@@ -1,13 +1,13 @@
-const bluebird = require("bluebird");
 const child_process = require('child_process');
 const fs = require("fs");
 const path = require("path");
 
-const Promise = bluebird.Promise;
-const readFile = bluebird.promisify(fs.readFile);
-const realpath = bluebird.promisify(fs.realpath);
-const stat = bluebird.promisify(fs.stat);
-const writeFile = bluebird.promisify(fs.writeFile);
+const { promisify } = require("./promisify");
+
+const readFile = promisify(fs.readFile);
+const realpath = promisify(fs.realpath);
+const stat = promisify(fs.stat);
+const writeFile = promisify(fs.writeFile);
 
 const PACKAGE_JSON = "package.json";
 const PYTHON_MODULES = "python_modules";
@@ -161,11 +161,11 @@ const findPackage = (descendent) => {
     ancestor = p;
   }
 
-  return Promise.map(ancestors, (ancestor) => {
+  return Promise.all(ancestors.map((ancestor) => {
     return stat(path.join(ancestor, PACKAGE_JSON))
       .then(obj => obj.isFile() && ancestor)
       .catch(() => false)
-  })
+  }))
   .then(packages => {
     packages = packages.filter(pkg => pkg);
     if (packages.length === 0)

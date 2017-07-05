@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-const bluebird = require("bluebird");
 const fs = require("fs");
 const path = require("path");
 const { findPackage, spawnPython } = require("./api");
+const { promisify } = require("./promisify");
 
-const stat = bluebird.promisify(fs.stat);
+const stat = promisify(fs.stat);
 
 const installPip = (pkg) => {
   return stat(path.join(pkg.dir, "python_modules")).catch(error => {

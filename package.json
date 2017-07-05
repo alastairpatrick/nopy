@@ -1,6 +1,6 @@
 {
   "name": "nopy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Install and run python dependencies in node.js project.",
   "keywords": [
     "dependency",
@@ -25,9 +25,7 @@
     "nopy": "./src/nopy.js",
     "npip": "./src/npip.js"
   },
-  "dependencies": {
-    "bluebird": "^3.5.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^3.2.0"
