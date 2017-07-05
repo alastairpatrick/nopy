@@ -232,6 +232,21 @@ $ npm run -s mako -- template.mako --var NAME=Al
 Hello, Al!
 ```
 
+## Python executable path
+
+By default, nopy assumes there is a program called `python` in the `PATH`, which it uses to invoke the python interpreter. This is configured in the `python.execPath` section of `package.json`.
+
+```
+  "name": "myproject",
+  ...
+  "python": {
+    "execPath": "python3",
+  },
+  ...
+```
+
+In the example above, nopy will execute `python3` instead of `python` to run programs.
+
 ## PYTHONPATH
 
 By default, nopy sets the `PYTHONPATH` environment variable to the project directory, i.e. the directory containing `package.json`, replacing any previous value. 

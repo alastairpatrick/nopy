@@ -41,14 +41,14 @@ const findSourceArg = (args) => {
   return -1;
 }
 
-const getPythonScriptsDir = (packageDir, env = process.env) => {
+const getPythonScriptsDir = (pythonExecPath, packageDir, env = process.env) => {
   let cachePath = path.join(packageDir, PYTHON_MODULES, ".scripts");
   return readFile(cachePath, "utf-8")
   .then(relativePath => path.join(packageDir, relativePath))
   .catch(error => {
     if (error.code !== "ENOENT")
       throw error;
-    let child = child_process.spawn("python", ["-m", "site", "--user-site"], { env });
+    let child = child_process.spawn(pythonExecPath, ["-m", "site", "--user-site"], { env });
     return new Promise((resolve, reject) => {
       let stdout = "";
       let stderr = "";
@@ -108,9 +108,12 @@ class Package {
       json = Object.assign({
         python: {},
       }, json);
-      json.python.dependencies = Object.assign({}, json.python.dependencies);
-      json.python.devDependencies = Object.assign({}, json.python.devDependencies);
-      json.python.path = json.python.path || ".";
+      json.python = Object.assign({
+        dependencies: {},
+        devDependencies: {},
+        execPath: "python",
+        path: ".",
+      }, json.python);
       if (!Array.isArray(json.python.path))
         json.python.path = [json.python.path];
       return json;
@@ -132,9 +135,10 @@ class Package {
       pythonPath = pythonPath.map(p => path.resolve(this.dir, p));
       env.PYTHONPATH = joinPaths(...pythonPath);
 
-      return getPythonScriptsDir(this.dir, env)
+      return getPythonScriptsDir(json.python.execPath, this.dir, env)
       .then(scriptsDir => {
         env.PATH = joinPaths(scriptsDir, upperEnv.PATH || "");
+        env.NOPY_PYTHON_EXEC_PATH = json.python.execPath;
         return env;
       });
     });
@@ -175,13 +179,13 @@ const spawnPython = (args, options = {}) => {
   options = Object.assign({
     interop: "status",
     package: undefined,
-    execPath: "python",
+    execPath: undefined,
     spawn: {},
     throwNonZeroStatus: true,
   }, options);
 
   let pkg;
-  if (options.package) {
+  if (options.package !== undefined) {
     pkg = Promise.resolve(options.package);
   } else {
     let sourcePathIdx = findSourceArg(args);
@@ -189,7 +193,7 @@ const spawnPython = (args, options = {}) => {
     if (sourcePathIdx >= 0)
       sourcePath = args[sourcePathIdx];
 
-    if (sourcePath)
+    if (sourcePath !== undefined)
       pkg = realpath(sourcePath).then(findPackage);
     else
       pkg = findPackage(process.cwd());
@@ -199,6 +203,9 @@ const spawnPython = (args, options = {}) => {
   .then(pkg => pkg.pythonEnv(options.spawn.env))
   .then(env => {
     options.spawn.env = env;
+    if (options.execPath === undefined)
+      options.execPath = env.NOPY_PYTHON_EXEC_PATH;
+
     let child = child_process.spawn(options.execPath, args, options.spawn);
     switch (options.interop) {
     case "child":

@@ -79,21 +79,22 @@ describe("findPackage", function() {
 
   it("can read package JSON", function() {
     return findPackage().then(pkg => pkg.readJSON()).then(json => {
+      expect(json.python).to.deep.equal({
+        "path": ["src"],
+        "dependencies": {},
+        "devDependencies": {},
+        "execPath": "python",
+      });
       expect(json.name).to.equal("nopy");
     });
   });
 
   it("can read cached package JSON", function() {
     return findPackage().then(pkg => {
-      pkg.readJSON().then(json => {
+      return pkg.readJSON().then(json => {
         expect(json.name).to.equal("nopy");
-      });
-      pkg.readJSON().then(json => {
-        expect(json.python).to.deep.equal({
-          "path": ["src"],
-          "dependencies": {},
-          "devDependencies": {},
-        });
+        return pkg.readJSON();
+      }).then(json => {
         expect(json.name).to.equal("nopy");
       });
     });

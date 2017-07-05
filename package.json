@@ -1,6 +1,6 @@
 {
   "name": "nopy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Install and run python dependencies in node.js project.",
   "keywords": [
     "dependency",
@@ -16,7 +16,7 @@
   "bugs": "https://github.com/alastairpatrick/nopy/issues",
   "main": "./src/api.js",
   "scripts": {
-    "test": "mocha **/*.spec.js",
+    "test": "mocha **/*.spec.js --no-color",
     "nopy": "node src/nopy.js",
     "npip": "node src/npip.js"
   },
