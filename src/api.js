@@ -62,9 +62,15 @@ const getPythonScriptsDir = (pythonExecPath, packageDir, env = process.env) => {
       });
       child.on("error", reject);
       child.on("close", code => {
-        if (code !== 0)
-          reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
-        resolve(stdout);
+        switch (code) {
+          case 0: // user site directory is enabled
+          case 1: // user site directory is disabled by user
+          case 2: // uses site directory is disabled by super user or for security reasons
+            resolve(stdout);
+            break;
+          default: // unknown error
+            reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
+        }
       })
     }).then(stdout => {
       let siteDir = (/^(.*)$/m).exec(stdout)[1];
