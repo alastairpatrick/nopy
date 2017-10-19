@@ -43,38 +43,48 @@ const findSourceArg = (args) => {
   return -1;
 }
 
-const getPythonScriptsDir = (pythonExecPath, packageDir, env = process.env) => {
-  let cachePath = path.join(packageDir, PYTHON_MODULES, ".scripts");
-  return readFile(cachePath, "utf-8")
-  .then(relativePath => path.join(packageDir, relativePath))
-  .catch(error => {
-    if (error.code !== "ENOENT")
-      throw error;
-    let child = child_process.spawn(pythonExecPath, ["-m", "site", "--user-site"], { env });
-    return new Promise((resolve, reject) => {
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", data => {
-        stdout += data;
-      });
-      child.stderr.on("data", data => {
-        stderr += data;
-      });
-      child.on("error", reject);
-      child.on("close", code => {
-        if (code !== 0)
-          reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
-        resolve(stdout);
-      })
-    }).then(stdout => {
-      let siteDir = (/^(.*)$/m).exec(stdout)[1];
-      let scriptsDir = path.normalize(path.join(siteDir, "..", "Scripts"));
-      let relativePath = path.relative(packageDir, scriptsDir);
+const getPythonInfo = (pythonExecPath, packageDir, env = process.env) => {
+  let child = child_process.spawn(pythonExecPath, ["-c", `
+import json
+import os
+import site
+import sys
 
-      return writeFile(cachePath, relativePath, "utf-8")
-      .then(() => scriptsDir)
-      .catch(() => scriptsDir)
+# virtualenv does not implement site.getusersitepackages() but sets site.USER_SITE.
+if hasattr(site, "getusersitepackages"):
+  user_site = site.getusersitepackages()
+else:
+  user_site = site.USER_SITE
+
+# First element on PATH will be the user Scripts directory.
+# FIXME: This is only the right path for python 2.x on windows!
+pre_paths = [os.path.normpath(os.path.join(user_site, "..", "Scripts"))]
+
+# If in a virtual python environment, put the real one ahead of it on PATH.
+real_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", None))
+if real_prefix is not None:
+  pre_paths.append(os.path.normpath(os.path.join(real_prefix, os.path.relpath(sys.executable, sys.prefix), "..")))
+
+result = dict(prePaths=pre_paths)
+json.dump(result, sys.stdout)
+`], { env });
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", data => {
+      stdout += data;
     });
+    child.stderr.on("data", data => {
+      stderr += data;
+    });
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code !== 0)
+        reject(new Error(`Python site module exited with code ${code}.\n${stderr}`));
+      resolve(stdout);
+    })
+  }).then(stdout => {
+    return JSON.parse(stdout);
   });
 }
 
@@ -137,9 +147,10 @@ class Package {
       pythonPath = pythonPath.map(p => path.resolve(this.dir, p));
       env.PYTHONPATH = joinPaths(...pythonPath);
 
-      return getPythonScriptsDir(json.python.execPath, this.dir, env)
-      .then(scriptsDir => {
-        env.PATH = joinPaths(scriptsDir, upperEnv.PATH || "");
+      return getPythonInfo(json.python.execPath, this.dir, env)
+      .then(info => {
+        let paths = info.prePaths.concat([upperEnv.PATH || ""]);
+        env.PATH = joinPaths(...paths);
         env.NOPY_PYTHON_EXEC_PATH = json.python.execPath;
         return env;
       });
