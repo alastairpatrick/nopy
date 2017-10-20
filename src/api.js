@@ -56,9 +56,21 @@ if hasattr(site, "getusersitepackages"):
 else:
   user_site = site.USER_SITE
 
-# First element on PATH will be the user Scripts directory.
-# FIXME: This is only the right path for python 2.x on windows!
-pre_paths = [os.path.normpath(os.path.join(user_site, "..", "Scripts"))]
+# virtualenv does not implement site.getuserbase() but sets site.USER_BASE.
+if hasattr(site, "getuserbase"):
+  user_base = site.getuserbase()
+else:
+  user_base = site.USER_BASE
+
+# First element on PATH will be the user scripts directory. Location of scipts:
+# userbase/PythonXY/Scripts (Windows)
+# userbase/bin (other)
+if sys.platform == "win32":
+  scripts_path = os.path.normpath(os.path.join(user_site, "..", "Scripts"))
+else:
+  scripts_path = os.path.join(user_base, "bin")
+
+pre_paths = [scripts_path]
 
 # If in a virtual python environment, put the real one ahead of it on PATH.
 real_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", None))
