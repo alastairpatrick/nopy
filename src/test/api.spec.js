@@ -139,12 +139,6 @@ describe("Package", function() {
       expect(env["PYTHONPATH"]).to.equal(path.join(packageDir, "src"));
     });
   })
-
-  it("augments environment with scripts directory prepended to PATH", function() {
-    return pkg.pythonEnv({}).then(env => {
-      expect(env["PATH"]).to.match(/Scripts/);
-    });
-  })
 })
 
 describe("spawnPython", function() {
