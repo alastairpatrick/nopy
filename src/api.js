@@ -66,7 +66,10 @@ else:
 # userbase/PythonXY/Scripts (Windows)
 # userbase/bin (other)
 if sys.platform == "win32":
-  scripts_path = os.path.normpath(os.path.join(user_site, "..", "Scripts"))
+  if sys.hexversion < 0x03050000:
+    scripts_path = os.path.join(user_base, "Scripts")
+  else:
+    scripts_path = os.path.normpath(os.path.join(user_site, "..", "Scripts"))
 else:
   scripts_path = os.path.join(user_base, "bin")
 
