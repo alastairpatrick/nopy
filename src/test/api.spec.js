@@ -85,7 +85,7 @@ describe("findPackage", function() {
         "path": ["src"],
         "dependencies": {},
         "devDependencies": {},
-        "execPath": "python",
+        "execPath": ["__Python_That_Does_Not_Exist__", "python"],
       });
       expect(json.name).to.equal("nopy");
     });

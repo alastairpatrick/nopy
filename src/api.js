@@ -43,8 +43,16 @@ const findSourceArg = (args) => {
   return -1;
 }
 
-const getPythonInfo = (pythonExecPath, packageDir, env = process.env) => {
-  let child = child_process.spawn(pythonExecPath, ["-c", `
+const getPythonInfo = (execPaths, packageDir, env = process.env) => {
+  if (!Array.isArray(execPaths)) {
+    execPaths = [execPaths];
+  }
+
+  if (execPaths.length === 0) {
+    throw new Error("No python executable.");
+  }
+
+  let child = child_process.spawn(execPaths[0], ["-c", `
 import json
 import os
 import site
@@ -99,7 +107,15 @@ json.dump(result, sys.stdout)
       resolve(stdout);
     })
   }).then(stdout => {
-    return JSON.parse(stdout);
+    let result = JSON.parse(stdout);
+    result.execPath = execPaths[0];
+    return result;
+  }).catch(error => {
+    if (error.code === "ENOENT") {
+      return getPythonInfo(execPaths.slice(1), packageDir, env);
+    } else {
+      throw error;
+    }
   });
 }
 
@@ -166,7 +182,7 @@ class Package {
       .then(info => {
         let paths = info.prePaths.concat([upperEnv.PATH || ""]);
         env.PATH = joinPaths(...paths);
-        env.NOPY_PYTHON_EXEC_PATH = json.python.execPath;
+        env.NOPY_PYTHON_EXEC_PATH = info.execPath;
         return env;
       });
     });

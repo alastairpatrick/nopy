@@ -31,6 +31,7 @@
     "mocha": "^3.2.0"
   },
   "python": {
-    "path": "src"
+    "path": "src",
+    "execPath": ["__Python_That_Does_Not_Exist__", "python"]
   }
 }
