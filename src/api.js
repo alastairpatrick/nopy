@@ -166,12 +166,10 @@ class Package {
   }
 
   pythonEnv(env) {
-    env = Object.assign({}, env || process.env);
+    env = Object.assign({}, fixEnv(env || process.env));
 
     delete env.PYTHONNOUSERSITE;
     env.PYTHONUSERBASE = path.join(this.dir, PYTHON_MODULES);
-
-    let upperEnv = fixEnv(env);
 
     return this.readJSON().then(json => {
       let pythonPath = json.python.path;
@@ -180,7 +178,7 @@ class Package {
 
       return getPythonInfo(json.python.execPath, this.dir, env)
       .then(info => {
-        let paths = info.prePaths.concat([upperEnv.PATH || ""]);
+        let paths = info.prePaths.concat([env.PATH || ""]);
         env.PATH = joinPaths(...paths);
         env.NOPY_PYTHON_EXEC_PATH = info.execPath;
         return env;

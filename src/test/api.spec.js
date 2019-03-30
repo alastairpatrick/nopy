@@ -139,6 +139,17 @@ describe("Package", function() {
       expect(env["PYTHONPATH"]).to.equal(path.join(packageDir, "src"));
     });
   })
+
+  if (process.platform == "win32") {
+    it("replaces environment variable with alternate case", function() {
+      return pkg.pythonEnv({
+        "PythonUserBase": "wrong_modules",
+      }).then(env => {
+        expect(env["PythonUserBase"]).to.be.undefined;
+        expect(env["PYTHONUSERBASE"]).to.equal(path.join(packageDir, "python_modules"));
+      });
+    })
+  }
 })
 
 describe("spawnPython", function() {
