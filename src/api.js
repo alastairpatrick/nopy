@@ -84,11 +84,13 @@ else:
 pre_paths = [scripts_path]
 
 # If in a virtual python environment, put the real one ahead of it on PATH.
-real_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", None))
-if real_prefix is not None:
-  pre_paths.append(os.path.normpath(os.path.join(real_prefix, os.path.relpath(sys.executable, sys.prefix), "..")))
+base_prefix = getattr(sys, "real_prefix", getattr(sys, "base_prefix", None))
+if base_prefix is None:
+  exec_path = sys.executable
+else:
+  exec_path = os.path.normpath(os.path.join(base_prefix, os.path.relpath(sys.executable, sys.prefix)))
 
-result = dict(prePaths=pre_paths)
+result = dict(prePaths=pre_paths, execPath=exec_path)
 json.dump(result, sys.stdout)
 `], { env });
   return new Promise((resolve, reject) => {
@@ -108,7 +110,6 @@ json.dump(result, sys.stdout)
     })
   }).then(stdout => {
     let result = JSON.parse(stdout);
-    result.execPath = execPaths[0];
     return result;
   }).catch(error => {
     if (error.code === "ENOENT") {
