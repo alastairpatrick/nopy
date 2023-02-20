@@ -14,7 +14,7 @@ const installPip = (pkg) => {
     if (error.code !== "ENOENT")
       throw error;
     console.log("No python_modules directory; installing pip locally if needed.");
-    return spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], {
+    return spawnPython(["-m", "ensurepip", "--upgrade", "--user"], {
       package: pkg,
       interop: "status",
       spawn: {
