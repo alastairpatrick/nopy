@@ -2,30 +2,64 @@
 
 "use strict";
 
-const fs = require("fs");
+const fs = require("fs").promises;
+const os = require("os");
 const path = require("path");
 const { findPackage, spawnPython } = require("./api");
-const { promisify } = require("./promisify");
+const { downloadFile } = require("./utils");
 
-const stat = promisify(fs.stat);
-
-const installPip = (pkg) => {
-  return stat(path.join(pkg.dir, "python_modules")).catch(error => {
+const installPip = async (pkg) => {
+  try {
+    await fs.stat(path.join(pkg.dir, "python_modules"));
+    return;
+  } catch (error) {
     if (error.code !== "ENOENT")
       throw error;
-    console.log("No python_modules directory; installing pip locally if needed.");
-    return spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], {
-      package: pkg,
-      interop: "status",
-      spawn: {
-        stdio: "inherit",
-      }
-    }).then(code => {
-      console.log("Successfully completed pip check.");
-      return code;
-    });
-  });
-}
+  }
+
+  console.log("No python_modules directory; installing pip locally if needed.");
+  const opt = {
+    package: pkg,
+    interop: "status",
+    spawn: {
+      stdio: "inherit"
+    }
+  };
+
+  // Check if pip is already installed.
+  try {
+    await spawnPython(["-m", "pip", "-V"], opt);
+    return;
+  } catch { }
+
+  // Try to install via ensurepip.
+  try {
+    await spawnPython(["-m", "ensurepip", "--user"], opt);
+    console.log("Successfully completed pip check.");
+    return;
+  } catch { }
+
+  // run get-pip.py.
+  try {
+    await spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], opt);
+    console.log("Successfully completed pip check.");
+    return;
+  } catch { }
+
+  // Last resort: download pip and run it.
+  const tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'npip-'));
+  const tmpFile = path.join(tmpFolder, "get-pip.py");
+
+  try {
+    await downloadFile("https://bootstrap.pypa.io/get-pip.py", tmpFile);
+    // run get-pip.py
+    await spawnPython([tmpFile, "--user", "--quiet"], opt);
+    console.log("Successfully completed pip check.");
+    return;
+  } finally {
+    await fs.rm(tmpFolder, { recursive: true, force: true });
+  }
+};
 
 const main = () => {
   let args = process.argv.slice(2);
