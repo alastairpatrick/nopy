@@ -3,6 +3,7 @@
 "use strict";
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { findPackage, spawnPython } = require("./api");
 
@@ -28,26 +29,25 @@ const installPip = async (pkg) => {
   try {
     await spawnPython(["-m", "pip", "-V"], opt);
     return;
-  } catch (e) { }
+  } catch { }
 
   // Try to install via ensurepip.
   try {
-    await spawnPython(["-m", "ensurepip", "--upgrade", "--user"], opt);
+    await spawnPython(["-m", "ensurepip", "--user"], opt);
     console.log("Successfully completed pip check.");
     return;
-  } catch (e) { }
+  } catch { }
 
   // run get-pip.py.
   try {
     await spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], opt);
     console.log("Successfully completed pip check.");
     return;
-  } catch (error) {
-    console.error("Failed to install pip locally.\n" + JSON.stringify(error));
-  }
+  } catch { }
 
   // Last resort: download pip and run it.
-  const tmpFile = path.join(pkg.dir, "get-pip.py");
+  const tmpFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'npip-'));
+  const tmpFile = path.join(tmpFolder, "get-pip.py");
 
   try {
     await fetch("https://bootstrap.pypa.io/get-pip.py", {
@@ -63,11 +63,11 @@ const installPip = async (pkg) => {
     // run get-pip.py
     await spawnPython([tmpFile, "--user", "--quiet"], opt);
     console.log("Successfully completed pip check.");
-    fs.unlinkSync(tmpFile);
     return;
   } catch (error) {
-    fs.unlinkSync(tmpFile);
-    console.error("Failed to install pip locally.\n" + JSON.stringify(error));
+    console.error("Failed to install pip locally.\n" + JSON.stringify(error, null, 2));
+  } finally {
+    await fs.promises.unlink(tmpFolder);
   }
 };
 
