@@ -5,27 +5,71 @@
 const fs = require("fs");
 const path = require("path");
 const { findPackage, spawnPython } = require("./api");
-const { promisify } = require("./promisify");
 
-const stat = promisify(fs.stat);
-
-const installPip = (pkg) => {
-  return stat(path.join(pkg.dir, "python_modules")).catch(error => {
+const installPip = async (pkg) => {
+  try {
+    await fs.promises.stat(path.join(pkg.dir, "python_modules"));
+    return;
+  } catch (error) {
     if (error.code !== "ENOENT")
       throw error;
-    console.log("No python_modules directory; installing pip locally if needed.");
-    return spawnPython(["-m", "ensurepip", "--upgrade", "--user"], {
-      package: pkg,
-      interop: "status",
-      spawn: {
-        stdio: "inherit",
-      }
-    }).then(code => {
-      console.log("Successfully completed pip check.");
-      return code;
+  }
+
+  console.log("No python_modules directory; installing pip locally if needed.");
+  const opt = {
+    package: pkg,
+    interop: "status",
+    spawn: {
+      stdio: "inherit"
+    }
+  };
+
+  // Check if pip is already installed.
+  try {
+    await spawnPython(["-m", "pip", "-V"], opt);
+    return;
+  } catch (e) { }
+
+  // Try to install via ensurepip.
+  try {
+    await spawnPython(["-m", "ensurepip", "--upgrade", "--user"], opt);
+    console.log("Successfully completed pip check.");
+    return;
+  } catch (e) { }
+
+  // run get-pip.py.
+  try {
+    await spawnPython([path.join(__dirname, "get-pip.py"), "--user", "--quiet"], opt);
+    console.log("Successfully completed pip check.");
+    return;
+  } catch (error) {
+    console.error("Failed to install pip locally.\n" + JSON.stringify(error));
+  }
+
+  // Last resort: download pip and run it.
+  const tmpFile = path.join(pkg.dir, "get-pip.py");
+
+  try {
+    await fetch("https://bootstrap.pypa.io/get-pip.py", {
+      method: "GET",
+      headers: {
+        "User-Agent": "nopy npip",
+      },
+    }).then(res => {
+      if (!res.ok)
+        throw new Error("Failed to download get-pip.py: " + res.statusText);
+      return res.body.pipe(fs.createWriteStream(tmpFile));
     });
-  });
-}
+    // run get-pip.py
+    await spawnPython([tmpFile, "--user", "--quiet"], opt);
+    console.log("Successfully completed pip check.");
+    fs.unlinkSync(tmpFile);
+    return;
+  } catch (error) {
+    fs.unlinkSync(tmpFile);
+    console.error("Failed to install pip locally.\n" + JSON.stringify(error));
+  }
+};
 
 const main = () => {
   let args = process.argv.slice(2);
