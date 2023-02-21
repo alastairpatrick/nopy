@@ -64,10 +64,8 @@ const installPip = async (pkg) => {
     await spawnPython([tmpFile, "--user", "--quiet"], opt);
     console.log("Successfully completed pip check.");
     return;
-  } catch (error) {
-    console.error("Failed to install pip locally.\n" + JSON.stringify(error, null, 2));
   } finally {
-    await fs.promises.unlink(tmpFolder);
+    await fs.promises.rmdir(tmpFolder, { recursive: true });
   }
 };
 
