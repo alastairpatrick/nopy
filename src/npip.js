@@ -2,14 +2,15 @@
 
 "use strict";
 
-const fs = require("fs");
+const fs = require("fs").promises;
 const os = require("os");
 const path = require("path");
 const { findPackage, spawnPython } = require("./api");
+const { downloadFile } = require("./utils");
 
 const installPip = async (pkg) => {
   try {
-    await fs.promises.stat(path.join(pkg.dir, "python_modules"));
+    await fs.stat(path.join(pkg.dir, "python_modules"));
     return;
   } catch (error) {
     if (error.code !== "ENOENT")
@@ -46,26 +47,17 @@ const installPip = async (pkg) => {
   } catch { }
 
   // Last resort: download pip and run it.
-  const tmpFolder = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'npip-'));
+  const tmpFolder = await fs.mkdtemp(path.join(os.tmpdir(), 'npip-'));
   const tmpFile = path.join(tmpFolder, "get-pip.py");
 
   try {
-    await fetch("https://bootstrap.pypa.io/get-pip.py", {
-      method: "GET",
-      headers: {
-        "User-Agent": "nopy npip",
-      },
-    }).then(res => {
-      if (!res.ok)
-        throw new Error("Failed to download get-pip.py: " + res.statusText);
-      return res.body.pipe(fs.createWriteStream(tmpFile));
-    });
+    await downloadFile("https://bootstrap.pypa.io/get-pip.py", tmpFile);
     // run get-pip.py
     await spawnPython([tmpFile, "--user", "--quiet"], opt);
     console.log("Successfully completed pip check.");
     return;
   } finally {
-    await fs.promises.rmdir(tmpFolder, { recursive: true });
+    await fs.rm(tmpFolder, { recursive: true, force: true });
   }
 };
 

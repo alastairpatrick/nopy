@@ -4,12 +4,11 @@ const child_process = require('child_process');
 const fs = require("fs");
 const path = require("path");
 
-const { promisify } = require("./promisify");
+const { promisify } = require("./utils");
 
 const readFile = promisify(fs.readFile);
 const realpath = promisify(fs.realpath);
 const stat = promisify(fs.stat);
-const writeFile = promisify(fs.writeFile);
 
 const PACKAGE_JSON = "package.json";
 const PYTHON_MODULES = "python_modules";
